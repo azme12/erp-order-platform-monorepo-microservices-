@@ -15,54 +15,65 @@ import (
 )
 
 func main() {
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
-	// Initialize logger
 	logger := log.Init("gateway")
 	logger.Info(ctx, "starting API Gateway")
 
-	// Load configuration
 	cfg, err := config.LoadConfig()
 	if err != nil {
 		logger.Fatal(ctx, "failed to load config", zap.Error(err))
 	}
 
-	// Initialize router
 	r := router.NewRouter(cfg, logger)
 
-	// Get port from environment or use default
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "8080"
+		port = "8000"
 	}
 
-	// Create HTTP server
 	srv := &http.Server{
-		Addr:    ":" + port,
-		Handler: r,
+		Addr:         ":" + port,
+		Handler:      r,
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 15 * time.Second,
+		IdleTimeout:  60 * time.Second,
 	}
 
-	// Start server in goroutine
+	serverErrors := make(chan error, 1)
+
 	go func() {
 		logger.Info(ctx, "starting HTTP server", zap.String("port", port))
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			logger.Fatal(ctx, "failed to start server", zap.Error(err))
+			serverErrors <- err
 		}
 	}()
 
-	// Wait for interrupt signal
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
 
-	logger.Info(ctx, "shutting down server")
+	select {
+	case err := <-serverErrors:
+		logger.Fatal(ctx, "server error", zap.Error(err))
+	case sig := <-quit:
+		logger.Info(ctx, "shutdown signal received", zap.String("signal", sig.String()))
+	}
 
-	// Graceful shutdown
-	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+	logger.Info(ctx, "shutting down server gracefully")
+
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer shutdownCancel()
+
+	cancel()
 
 	if err := srv.Shutdown(shutdownCtx); err != nil {
 		logger.Error(ctx, "server forced to shutdown", zap.Error(err))
+		if closeErr := srv.Close(); closeErr != nil {
+			logger.Error(ctx, "error closing server", zap.Error(closeErr))
+		}
+	} else {
+		logger.Info(ctx, "server shutdown gracefully")
 	}
 
 	logger.Info(ctx, "server exited")

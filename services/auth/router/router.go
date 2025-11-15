@@ -13,7 +13,7 @@ import (
 	httpSwagger "github.com/swaggo/http-swagger"
 )
 
-func NewRouter(handler *httphandler.Handler, logger log.Logger) http.Handler {
+func NewRouter(handler *httphandler.Handler, _ log.Logger) http.Handler {
 	r := chi.NewRouter()
 
 	docs.SwaggerInfo.Schemes = []string{"http", "https"}

@@ -49,11 +49,3 @@ func ValidateToken(tokenString, secret string) (*Claims, error) {
 
 	return nil, fmt.Errorf("invalid token")
 }
-
-func ExtractRole(claims *Claims) string {
-	return claims.Role
-}
-
-func IsUserToken(claims *Claims) bool {
-	return claims.Type == "user"
-}

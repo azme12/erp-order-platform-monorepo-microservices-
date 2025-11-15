@@ -1,23 +1,15 @@
-# Binaries
-*.exe
-*.exe~
-*.dll
-*.so
-*.dylib
-bin/
-dist/
+# Environment files
+.env
+.env.local
+.env.*.local
 
-# Test binary
-*.test
+# Logs
+*.log
+/tmp/*.log
 
-# Output of the go coverage tool
-*.out
-
-# Dependency directories
-vendor/
-
-# Go workspace file
-go.work
+# PID files
+*.pid
+/tmp/*.pid
 
 # IDE
 .idea/
@@ -30,36 +22,20 @@ go.work
 .DS_Store
 Thumbs.db
 
-# Environment variables
-.env
-.env.local
-
-# Logs
-*.log
-logs/
-
-# Database
-*.db
-*.sqlite
-*.sqlite3
-
-# Docker
-docker-compose.override.yml
-
 # Build artifacts
-main
-auth
-contact
-inventory
-sales
-purchase
-gateway
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+/bin/
+/dist/
 
-# Temporary files
-tmp/
-temp/
+# Go
+vendor/
+go.sum
 
-# Project documentation
+# Documentation
 COMPLETE_IMPLEMENTATION_PLAN.md
-
-.env

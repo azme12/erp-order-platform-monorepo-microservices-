@@ -1,152 +1,104 @@
 services:
-  # Databases (5 separate databases - PostgreSQL 16.10)
-  db-auth:
+  db:
     image: postgres:16.10
-    container_name: db-auth
+    container_name: db
+    env_file:
+      - .env
     environment:
-      POSTGRES_DB: auth
-      POSTGRES_USER: auth
-      POSTGRES_PASSWORD: auth
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
     ports:
-      - "5433:5432"
+      - "${DB_PORT:-5432}:5432"
     volumes:
-      - auth_db_data:/var/lib/postgresql/data
+      - db_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U auth"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER}"]
       interval: 10s
       timeout: 5s
       retries: 5
 
-  db-contact:
-    image: postgres:16.10
-    container_name: db-contact
-    environment:
-      POSTGRES_DB: contact
-      POSTGRES_USER: contact
-      POSTGRES_PASSWORD: contact
-    ports:
-      - "5434:5432"
-    volumes:
-      - contact_db_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U contact"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  db-inventory:
-    image: postgres:16.10
-    container_name: db-inventory
-    environment:
-      POSTGRES_DB: inventory
-      POSTGRES_USER: inventory
-      POSTGRES_PASSWORD: inventory
-    ports:
-      - "5435:5432"
-    volumes:
-      - inventory_db_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U inventory"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  db-sales:
-    image: postgres:16.10
-    container_name: db-sales
-    environment:
-      POSTGRES_DB: sales
-      POSTGRES_USER: sales
-      POSTGRES_PASSWORD: sales
-    ports:
-      - "5436:5432"
-    volumes:
-      - sales_db_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U sales"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  db-purchase:
-    image: postgres:16.10
-    container_name: db-purchase
-    environment:
-      POSTGRES_DB: purchase
-      POSTGRES_USER: purchase
-      POSTGRES_PASSWORD: purchase
-    ports:
-      - "5437:5432"
-    volumes:
-      - purchase_db_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U purchase"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # Message Broker (NATS Core)
   nats:
     image: nats:latest
     container_name: nats
     ports:
-      - "4222:4222"      # Client connections
-      - "8222:8222"      # HTTP monitoring
-    command: ["-m", "8222"]  # Enable monitoring on port 8222
+      - "4222:4222"
+      - "8222:8222"
+    command: ["-m", "8222"]
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:8222/healthz"]
       interval: 10s
       timeout: 5s
       retries: 5
 
-  # Auth Service
   auth:
     build:
       context: .
       dockerfile: services/auth/Dockerfile
     container_name: auth-service
+    env_file:
+      - .env
     ports:
-      - "8001:8000"
+      - "${AUTH_SERVICE_PORT:-8002}:8000"
     environment:
-      - DB_HOST=db-auth
-      - DB_PORT=5432
-      - DB_USER=auth
-      - DB_PASSWORD=auth
-      - DB_NAME=auth
-      - JWT_SECRET=your-secret-key-change-in-production
-      - JWT_USER_EXPIRATION_HOURS=24
-      - JWT_SERVICE_EXPIRATION_HOURS=1
-      - SALES_SERVICE_SECRET=sales-service-secret
-      - PURCHASE_SERVICE_SECRET=purchase-service-secret
-      - CONTACT_SERVICE_SECRET=contact-service-secret
-      - INVENTORY_SERVICE_SECRET=inventory-service-secret
       - PORT=8000
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${DB_NAME}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_USER_EXPIRATION_HOURS=${JWT_USER_EXPIRATION_HOURS:-24}
+      - NATS_URL=nats://nats:4222
     depends_on:
-      db-auth:
+      db:
         condition: service_healthy
 
-  # API Gateway
+  contact:
+    build:
+      context: .
+      dockerfile: services/contact/Dockerfile
+    container_name: contact-service
+    env_file:
+      - .env
+    ports:
+      - "${CONTACT_SERVICE_PORT:-8001}:8000"
+    environment:
+      - PORT=8000
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${DB_NAME}
+      - JWT_SECRET=${JWT_SECRET}
+      - NATS_URL=nats://nats:4222
+    depends_on:
+      db:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+
   gateway:
     build:
       context: .
       dockerfile: gateway/Dockerfile
     container_name: gateway
+    env_file:
+      - .env
     ports:
-      - "8080:8080"
+      - "${GATEWAY_PORT:-8000}:${GATEWAY_PORT:-8000}"
     environment:
-      - PORT=8080
-      - AUTH_SERVICE_URL=http://auth:8000
-      - CONTACT_SERVICE_URL=http://contact:8000
-      - INVENTORY_SERVICE_URL=http://inventory:8000
-      - SALES_SERVICE_URL=http://sales:8000
-      - PURCHASE_SERVICE_URL=http://purchase:8000
+      - PORT=${GATEWAY_PORT:-8000}
+      - JWT_SECRET=${JWT_SECRET}
+      - AUTH_SERVICE_URL=${AUTH_SERVICE_URL:-http://auth:8000}
+      - CONTACT_SERVICE_URL=${CONTACT_SERVICE_URL:-http://contact:8000}
+      - INVENTORY_SERVICE_URL=${INVENTORY_SERVICE_URL:-http://inventory:8000}
+      - SALES_SERVICE_URL=${SALES_SERVICE_URL:-http://sales:8000}
+      - PURCHASE_SERVICE_URL=${PURCHASE_SERVICE_URL:-http://purchase:8000}
     depends_on:
       - auth
+      - contact
 
 volumes:
-  auth_db_data:
-  contact_db_data:
-  inventory_db_data:
-  sales_db_data:
-  purchase_db_data:
+  db_data:
 

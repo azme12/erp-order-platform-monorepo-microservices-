@@ -32,22 +32,20 @@ type NATSConfig struct {
 }
 
 type JWTConfig struct {
-	Secret                 string
-	UserExpirationHours    int
-	ServiceExpirationHours int
+	Secret              string
+	UserExpirationHours int
 }
 
 type ServicesConfig struct {
-	Auth      ServiceConfig
-	Contact   ServiceConfig
-	Inventory ServiceConfig
-	Sales     ServiceConfig
-	Purchase  ServiceConfig
+	Auth      ServiceURLConfig
+	Contact   ServiceURLConfig
+	Inventory ServiceURLConfig
+	Sales     ServiceURLConfig
+	Purchase  ServiceURLConfig
 }
 
-type ServiceConfig struct {
-	URL    string
-	Secret string
+type ServiceURLConfig struct {
+	URL string
 }
 
 func LoadConfig() (*Config, error) {
@@ -67,45 +65,43 @@ func LoadConfig() (*Config, error) {
 
 	config := &Config{
 		Server: ServerConfig{
-			Port: getEnv("PORT", "8000"),
+			Port: getEnv("PORT", getEnv("GATEWAY_PORT", "8000")),
 		},
 		Database: DatabaseConfig{
 			Host:     getEnv("DB_HOST", "localhost"),
 			Port:     getEnv("DB_PORT", "5432"),
-			User:     getEnv("DB_USER", "user"),
-			Password: getEnv("DB_PASSWORD", "password"),
-			Name:     getEnv("DB_NAME", "db"),
+			User:     getEnv("DB_USER", "microservice"),
+			Password: getEnv("DB_PASSWORD", ""),
+			Name:     getEnv("DB_NAME", "microservice"),
 		},
 		NATS: NATSConfig{
 			URL: getEnv("NATS_URL", "nats://localhost:4222"),
 		},
 		JWT: JWTConfig{
-			Secret:                 getEnv("JWT_SECRET", "your-secret-key-change-in-production"),
-			UserExpirationHours:    getEnvInt("JWT_USER_EXPIRATION_HOURS", 24),
-			ServiceExpirationHours: getEnvInt("JWT_SERVICE_EXPIRATION_HOURS", 1),
+			Secret:              getEnv("JWT_SECRET", ""),
+			UserExpirationHours: getEnvInt("JWT_USER_EXPIRATION_HOURS", 24),
 		},
 		Services: ServicesConfig{
-			Auth: ServiceConfig{
-				URL:    getEnv("AUTH_SERVICE_URL", "http://auth:8000"),
-				Secret: getEnv("AUTH_SERVICE_SECRET", "auth-service-secret"),
+			Auth: ServiceURLConfig{
+				URL: getEnv("AUTH_SERVICE_URL", "http://localhost:8002"),
 			},
-			Contact: ServiceConfig{
-				URL:    getEnv("CONTACT_SERVICE_URL", "http://contact:8000"),
-				Secret: getEnv("CONTACT_SERVICE_SECRET", "contact-service-secret"),
+			Contact: ServiceURLConfig{
+				URL: getEnv("CONTACT_SERVICE_URL", "http://localhost:8001"),
 			},
-			Inventory: ServiceConfig{
-				URL:    getEnv("INVENTORY_SERVICE_URL", "http://inventory:8000"),
-				Secret: getEnv("INVENTORY_SERVICE_SECRET", "inventory-service-secret"),
+			Inventory: ServiceURLConfig{
+				URL: getEnv("INVENTORY_SERVICE_URL", "http://localhost:8003"),
 			},
-			Sales: ServiceConfig{
-				URL:    getEnv("SALES_SERVICE_URL", "http://sales:8000"),
-				Secret: getEnv("SALES_SERVICE_SECRET", "sales-service-secret"),
+			Sales: ServiceURLConfig{
+				URL: getEnv("SALES_SERVICE_URL", "http://localhost:8004"),
 			},
-			Purchase: ServiceConfig{
-				URL:    getEnv("PURCHASE_SERVICE_URL", "http://purchase:8000"),
-				Secret: getEnv("PURCHASE_SERVICE_SECRET", "purchase-service-secret"),
+			Purchase: ServiceURLConfig{
+				URL: getEnv("PURCHASE_SERVICE_URL", "http://localhost:8005"),
 			},
 		},
+	}
+
+	if config.JWT.Secret == "" {
+		return nil, fmt.Errorf("JWT_SECRET environment variable is required")
 	}
 
 	return config, nil

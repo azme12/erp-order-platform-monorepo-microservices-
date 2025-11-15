@@ -50,12 +50,34 @@ func main() {
 		logger.Fatal(ctx, "failed to load config", zap.Error(err))
 	}
 
+	dbHost := os.Getenv("DB_HOST")
+	if dbHost == "" {
+		dbHost = "localhost"
+	}
+	dbPort := os.Getenv("DB_PORT")
+	if dbPort == "" {
+		dbPort = "5432"
+	}
+	dbUser := os.Getenv("DB_USER")
+	if dbUser == "" {
+		dbUser = "microservice"
+	}
+	dbPassword := os.Getenv("DB_PASSWORD")
+	dbName := os.Getenv("DB_NAME")
+	if dbName == "" {
+		dbName = "microservice"
+	}
+
+	if dbPassword == "" {
+		logger.Fatal(ctx, "DB_PASSWORD environment variable is required")
+	}
+
 	dbConnStr := database.BuildConnectionString(
-		cfg.Database.Host,
-		cfg.Database.Port,
-		cfg.Database.User,
-		cfg.Database.Password,
-		cfg.Database.Name,
+		dbHost,
+		dbPort,
+		dbUser,
+		dbPassword,
+		dbName,
 	)
 
 	db, err := database.NewPostgresConnection(dbConnStr)
