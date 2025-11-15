@@ -18,6 +18,7 @@ const (
 	userIDKey contextKey = "user_id"
 	emailKey  contextKey = "email"
 	roleKey   contextKey = "role"
+	tokenKey  contextKey = "token"
 )
 
 type AuthMiddleware struct {
@@ -60,6 +61,7 @@ func (m *AuthMiddleware) ValidateToken(next http.Handler) http.Handler {
 		ctx = context.WithValue(ctx, userIDKey, claims.UserID)
 		ctx = context.WithValue(ctx, emailKey, claims.Email)
 		ctx = context.WithValue(ctx, roleKey, claims.Role)
+		ctx = context.WithValue(ctx, tokenKey, tokenString)
 
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
@@ -96,4 +98,8 @@ func GetRoleFromContext(ctx context.Context) string {
 func GetUserIDFromContext(ctx context.Context) string {
 	userID, _ := ctx.Value(userIDKey).(string)
 	return userID
+}
+
+func GetTokenKey() contextKey {
+	return tokenKey
 }

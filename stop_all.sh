@@ -22,6 +22,24 @@ if [ -f /tmp/contact.pid ]; then
     rm -f /tmp/contact.pid
 fi
 
+if [ -f /tmp/inventory.pid ]; then
+    INVENTORY_PID=$(cat /tmp/inventory.pid)
+    if ps -p $INVENTORY_PID > /dev/null 2>&1; then
+        kill $INVENTORY_PID 2>/dev/null || true
+        echo "✅ Inventory Service stopped"
+    fi
+    rm -f /tmp/inventory.pid
+fi
+
+if [ -f /tmp/sales.pid ]; then
+    SALES_PID=$(cat /tmp/sales.pid)
+    if ps -p $SALES_PID > /dev/null 2>&1; then
+        kill $SALES_PID 2>/dev/null || true
+        echo "✅ Sales Service stopped"
+    fi
+    rm -f /tmp/sales.pid
+fi
+
 if [ -f /tmp/gateway.pid ]; then
     GATEWAY_PID=$(cat /tmp/gateway.pid)
     if ps -p $GATEWAY_PID > /dev/null 2>&1; then
@@ -35,6 +53,8 @@ fi
 lsof -ti:8000 | xargs kill -9 2>/dev/null || true
 lsof -ti:8001 | xargs kill -9 2>/dev/null || true
 lsof -ti:8002 | xargs kill -9 2>/dev/null || true
+lsof -ti:8003 | xargs kill -9 2>/dev/null || true
+lsof -ti:8004 | xargs kill -9 2>/dev/null || true
 
 # Stop Docker services
 cd /home/admn/Documents/project/SR-BE-interview-1

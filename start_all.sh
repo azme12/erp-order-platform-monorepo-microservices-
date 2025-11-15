@@ -27,6 +27,31 @@ sleep 5
 echo "✅ Database and NATS started"
 echo ""
 
+# Step 1.5: Run Database Migrations
+echo "🗄️  Step 1.5: Running database migrations..."
+if command -v psql > /dev/null; then
+    # Run Auth migrations
+    echo "  Running Auth migrations..."
+    PGPASSWORD=${DB_PASSWORD} psql -h ${DB_HOST:-localhost} -p ${DB_PORT:-5432} -U ${DB_USER} -d ${DB_NAME} -f migrations/auth/000001_create_users_table.up.sql > /dev/null 2>&1 || echo "  Auth migration may already exist"
+    
+    # Run Contact migrations
+    echo "  Running Contact migrations..."
+    PGPASSWORD=${DB_PASSWORD} psql -h ${DB_HOST:-localhost} -p ${DB_PORT:-5432} -U ${DB_USER} -d ${DB_NAME} -f migrations/contact/000001_create_customers_vendors_tables.up.sql > /dev/null 2>&1 || echo "  Contact migration may already exist"
+    
+    # Run Inventory migrations
+    echo "  Running Inventory migrations..."
+    PGPASSWORD=${DB_PASSWORD} psql -h ${DB_HOST:-localhost} -p ${DB_PORT:-5432} -U ${DB_USER} -d ${DB_NAME} -f migrations/inventory/000001_create_items_stock_tables.up.sql > /dev/null 2>&1 || echo "  Inventory migration may already exist"
+    
+    # Run Sales migrations
+    echo "  Running Sales migrations..."
+    PGPASSWORD=${DB_PASSWORD} psql -h ${DB_HOST:-localhost} -p ${DB_PORT:-5432} -U ${DB_USER} -d ${DB_NAME} -f migrations/sales/000001_create_sales_orders_order_items_tables.up.sql > /dev/null 2>&1 || echo "  Sales migration may already exist"
+    
+    echo "✅ Migrations completed"
+else
+    echo "⚠️  psql not found, skipping migrations. Please run migrations manually."
+fi
+echo ""
+
 # Step 2: Start Auth Service
 echo "🔐 Step 2: Starting Auth Service on port ${AUTH_SERVICE_PORT:-8002}..."
 PORT=${AUTH_SERVICE_PORT:-8002} \
@@ -74,11 +99,61 @@ else
 fi
 echo ""
 
-# Step 4: Start Gateway
-echo "🌐 Step 4: Starting Gateway on port ${GATEWAY_PORT:-8000}..."
+# Step 4: Start Inventory Service
+echo "📦 Step 4: Starting Inventory Service on port ${INVENTORY_SERVICE_PORT:-8003}..."
+PORT=${INVENTORY_SERVICE_PORT:-8003} \
+DB_HOST=${DB_HOST} \
+DB_PORT=${DB_PORT} \
+DB_USER=${DB_USER} \
+DB_PASSWORD=${DB_PASSWORD} \
+DB_NAME=${DB_NAME} \
+JWT_SECRET=${JWT_SECRET} \
+NATS_URL=${NATS_URL} \
+go run services/inventory/cmd/main.go > /tmp/inventory.log 2>&1 &
+INVENTORY_PID=$!
+echo $INVENTORY_PID > /tmp/inventory.pid
+sleep 3
+
+if curl -s http://localhost:${INVENTORY_SERVICE_PORT:-8003}/health > /dev/null; then
+    echo "✅ Inventory Service started (PID: $INVENTORY_PID)"
+else
+    echo "❌ Inventory Service failed to start. Check /tmp/inventory.log"
+    exit 1
+fi
+echo ""
+
+# Step 5: Start Sales Service
+echo "💰 Step 5: Starting Sales Service on port ${SALES_SERVICE_PORT:-8004}..."
+PORT=${SALES_SERVICE_PORT:-8004} \
+DB_HOST=${DB_HOST} \
+DB_PORT=${DB_PORT} \
+DB_USER=${DB_USER} \
+DB_PASSWORD=${DB_PASSWORD} \
+DB_NAME=${DB_NAME} \
+JWT_SECRET=${JWT_SECRET} \
+NATS_URL=${NATS_URL} \
+CONTACT_SERVICE_URL=${CONTACT_SERVICE_URL:-http://localhost:8001} \
+INVENTORY_SERVICE_URL=${INVENTORY_SERVICE_URL:-http://localhost:8003} \
+go run services/sales/cmd/main.go > /tmp/sales.log 2>&1 &
+SALES_PID=$!
+echo $SALES_PID > /tmp/sales.pid
+sleep 3
+
+if curl -s http://localhost:${SALES_SERVICE_PORT:-8004}/health > /dev/null; then
+    echo "✅ Sales Service started (PID: $SALES_PID)"
+else
+    echo "❌ Sales Service failed to start. Check /tmp/sales.log"
+    exit 1
+fi
+echo ""
+
+# Step 6: Start Gateway
+echo "🌐 Step 6: Starting Gateway on port ${GATEWAY_PORT:-8000}..."
 PORT=${GATEWAY_PORT:-8000} \
 AUTH_SERVICE_URL=${AUTH_SERVICE_URL} \
 CONTACT_SERVICE_URL=${CONTACT_SERVICE_URL} \
+INVENTORY_SERVICE_URL=${INVENTORY_SERVICE_URL} \
+SALES_SERVICE_URL=${SALES_SERVICE_URL:-http://localhost:8004} \
 JWT_SECRET=${JWT_SECRET} \
 go run gateway/cmd/main.go > /tmp/gateway.log 2>&1 &
 GATEWAY_PID=$!
@@ -101,21 +176,29 @@ echo "Services:"
 echo "  🌐 Gateway:     http://localhost:${GATEWAY_PORT:-8000}"
 echo "  🔐 Auth:        http://localhost:${AUTH_SERVICE_PORT:-8002}"
 echo "  📇 Contact:     http://localhost:${CONTACT_SERVICE_PORT:-8001}"
+echo "  📦 Inventory:   http://localhost:${INVENTORY_SERVICE_PORT:-8003}"
+echo "  💰 Sales:       http://localhost:${SALES_SERVICE_PORT:-8004}"
 echo "  📡 NATS:        http://localhost:8222 (monitoring)"
 echo ""
 echo "Health Checks:"
-echo "  Gateway:  $(curl -s http://localhost:${GATEWAY_PORT:-8000}/health)"
-echo "  Auth:     $(curl -s http://localhost:${AUTH_SERVICE_PORT:-8002}/health | jq -r '.status // "OK"' 2>/dev/null || echo 'OK')"
-echo "  Contact:  $(curl -s http://localhost:${CONTACT_SERVICE_PORT:-8001}/health | jq -r '.status // "OK"' 2>/dev/null || echo 'OK')"
+echo "  Gateway:   $(curl -s http://localhost:${GATEWAY_PORT:-8000}/health)"
+echo "  Auth:      $(curl -s http://localhost:${AUTH_SERVICE_PORT:-8002}/health | jq -r '.status // "OK"' 2>/dev/null || echo 'OK')"
+echo "  Contact:   $(curl -s http://localhost:${CONTACT_SERVICE_PORT:-8001}/health | jq -r '.status // "OK"' 2>/dev/null || echo 'OK')"
+echo "  Inventory: $(curl -s http://localhost:${INVENTORY_SERVICE_PORT:-8003}/health | jq -r '.status // "OK"' 2>/dev/null || echo 'OK')"
+echo "  Sales:     $(curl -s http://localhost:${SALES_SERVICE_PORT:-8004}/health | jq -r '.status // "OK"' 2>/dev/null || echo 'OK')"
 echo ""
 echo "Swagger UI:"
-echo "  Auth:     http://localhost:${AUTH_SERVICE_PORT:-8002}/swagger/index.html"
-echo "  Contact:  http://localhost:${CONTACT_SERVICE_PORT:-8001}/swagger/index.html"
+echo "  Auth:      http://localhost:${AUTH_SERVICE_PORT:-8002}/swagger/index.html"
+echo "  Contact:   http://localhost:${CONTACT_SERVICE_PORT:-8001}/swagger/index.html"
+echo "  Inventory: http://localhost:${INVENTORY_SERVICE_PORT:-8003}/swagger/index.html"
+echo "  Sales:     http://localhost:${SALES_SERVICE_PORT:-8004}/swagger/index.html"
 echo ""
 echo "Logs:"
-echo "  Auth:     tail -f /tmp/auth.log"
-echo "  Contact:  tail -f /tmp/contact.log"
-echo "  Gateway:  tail -f /tmp/gateway.log"
+echo "  Auth:      tail -f /tmp/auth.log"
+echo "  Contact:   tail -f /tmp/contact.log"
+echo "  Inventory: tail -f /tmp/inventory.log"
+echo "  Sales:     tail -f /tmp/sales.log"
+echo "  Gateway:   tail -f /tmp/gateway.log"
 echo ""
 echo "To stop all services:"
 echo "  bash stop_all.sh"
