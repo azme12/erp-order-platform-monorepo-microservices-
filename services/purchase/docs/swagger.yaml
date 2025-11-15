@@ -1,0 +1,336 @@
+basePath: /
+definitions:
+  model.CreatePurchaseOrderItemRequest:
+    properties:
+      item_id:
+        type: string
+      quantity:
+        type: integer
+    type: object
+  model.CreatePurchaseOrderRequest:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/model.CreatePurchaseOrderItemRequest'
+        type: array
+      vendor_id:
+        type: string
+    type: object
+  model.PurchaseOrder:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: string
+      status:
+        $ref: '#/definitions/model.PurchaseOrderStatus'
+      total_amount:
+        type: number
+      updated_at:
+        type: string
+      vendor_id:
+        type: string
+    type: object
+  model.PurchaseOrderItem:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: string
+      item_id:
+        type: string
+      order_id:
+        type: string
+      quantity:
+        type: integer
+      subtotal:
+        type: number
+      unit_price:
+        type: number
+      updated_at:
+        type: string
+    type: object
+  model.PurchaseOrderStatus:
+    enum:
+    - Draft
+    - Received
+    - Paid
+    type: string
+    x-enum-varnames:
+    - PurchaseOrderStatusDraft
+    - PurchaseOrderStatusReceived
+    - PurchaseOrderStatusPaid
+  model.PurchaseOrderWithItems:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: string
+      items:
+        items:
+          $ref: '#/definitions/model.PurchaseOrderItem'
+        type: array
+      status:
+        $ref: '#/definitions/model.PurchaseOrderStatus'
+      total_amount:
+        type: number
+      updated_at:
+        type: string
+      vendor_id:
+        type: string
+    type: object
+  model.UpdatePurchaseOrderRequest:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/model.CreatePurchaseOrderItemRequest'
+        type: array
+    type: object
+host: localhost:8005
+info:
+  contact:
+    email: support@example.com
+    name: API Support
+    url: http://www.example.com/support
+  description: Purchase Service for managing Purchase Orders
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: Purchase Service API
+  version: "1.0"
+paths:
+  /orders:
+    get:
+      consumes:
+      - application/json
+      description: 'Get a list of purchase orders. Supports both pagination styles:
+        page/size or limit/offset'
+      parameters:
+      - default: 1
+        description: Page number (1-based)
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Page size
+        in: query
+        name: size
+        type: integer
+      - default: 10
+        description: Limit (alternative to size)
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Offset (alternative to page)
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.PurchaseOrder'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: List purchase orders
+      tags:
+      - purchase-orders
+    post:
+      consumes:
+      - application/json
+      description: Create a new purchase order in Draft status
+      parameters:
+      - description: Create purchase order request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.CreatePurchaseOrderRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/model.PurchaseOrderWithItems'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Create purchase order
+      tags:
+      - purchase-orders
+  /orders/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Get a purchase order by ID
+      parameters:
+      - description: Order ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.PurchaseOrderWithItems'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Get purchase order by ID
+      tags:
+      - purchase-orders
+    put:
+      consumes:
+      - application/json
+      description: Update an existing purchase order (only if in Draft status)
+      parameters:
+      - description: Order ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Update purchase order request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.UpdatePurchaseOrderRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.PurchaseOrderWithItems'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Update purchase order
+      tags:
+      - purchase-orders
+  /orders/{id}/pay:
+    post:
+      consumes:
+      - application/json
+      description: Change purchase order status from Received to Paid
+      parameters:
+      - description: Order ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.PurchaseOrderWithItems'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Pay purchase order
+      tags:
+      - purchase-orders
+  /orders/{id}/receive:
+    post:
+      consumes:
+      - application/json
+      description: Change purchase order status from Draft to Received. Publishes
+        NATS event.
+      parameters:
+      - description: Order ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.PurchaseOrderWithItems'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Receive purchase order
+      tags:
+      - purchase-orders
+securityDefinitions:
+  BearerAuth:
+    description: 'Type "Bearer" followed by a space and JWT token. Example: "Bearer
+      eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."'
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

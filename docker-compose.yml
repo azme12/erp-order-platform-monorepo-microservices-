@@ -78,6 +78,90 @@ services:
       nats:
         condition: service_healthy
 
+  inventory:
+    build:
+      context: .
+      dockerfile: services/inventory/Dockerfile
+    container_name: inventory-service
+    env_file:
+      - .env
+    ports:
+      - "${INVENTORY_SERVICE_PORT:-8003}:8000"
+    environment:
+      - PORT=8000
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${DB_NAME}
+      - JWT_SECRET=${JWT_SECRET}
+      - NATS_URL=nats://nats:4222
+    depends_on:
+      db:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+
+  sales:
+    build:
+      context: .
+      dockerfile: services/sales/Dockerfile
+    container_name: sales-service
+    env_file:
+      - .env
+    ports:
+      - "${SALES_SERVICE_PORT:-8004}:8000"
+    environment:
+      - PORT=8000
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${DB_NAME}
+      - JWT_SECRET=${JWT_SECRET}
+      - NATS_URL=nats://nats:4222
+      - CONTACT_SERVICE_URL=http://contact:8000
+      - INVENTORY_SERVICE_URL=http://inventory:8000
+    depends_on:
+      db:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+      contact:
+        condition: service_started
+      inventory:
+        condition: service_started
+
+  purchase:
+    build:
+      context: .
+      dockerfile: services/purchase/Dockerfile
+    container_name: purchase-service
+    env_file:
+      - .env
+    ports:
+      - "${PURCHASE_SERVICE_PORT:-8005}:8000"
+    environment:
+      - PORT=8000
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${DB_NAME}
+      - JWT_SECRET=${JWT_SECRET}
+      - NATS_URL=nats://nats:4222
+      - CONTACT_SERVICE_URL=http://contact:8000
+      - INVENTORY_SERVICE_URL=http://inventory:8000
+    depends_on:
+      db:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+      contact:
+        condition: service_started
+      inventory:
+        condition: service_started
+
   gateway:
     build:
       context: .
@@ -98,6 +182,9 @@ services:
     depends_on:
       - auth
       - contact
+      - inventory
+      - sales
+      - purchase
 
 volumes:
   db_data:

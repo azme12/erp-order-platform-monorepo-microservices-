@@ -40,6 +40,15 @@ if [ -f /tmp/sales.pid ]; then
     rm -f /tmp/sales.pid
 fi
 
+if [ -f /tmp/purchase.pid ]; then
+    PURCHASE_PID=$(cat /tmp/purchase.pid)
+    if ps -p $PURCHASE_PID > /dev/null 2>&1; then
+        kill $PURCHASE_PID 2>/dev/null || true
+        echo "✅ Purchase Service stopped"
+    fi
+    rm -f /tmp/purchase.pid
+fi
+
 if [ -f /tmp/gateway.pid ]; then
     GATEWAY_PID=$(cat /tmp/gateway.pid)
     if ps -p $GATEWAY_PID > /dev/null 2>&1; then
@@ -55,6 +64,7 @@ lsof -ti:8001 | xargs kill -9 2>/dev/null || true
 lsof -ti:8002 | xargs kill -9 2>/dev/null || true
 lsof -ti:8003 | xargs kill -9 2>/dev/null || true
 lsof -ti:8004 | xargs kill -9 2>/dev/null || true
+lsof -ti:8005 | xargs kill -9 2>/dev/null || true
 
 # Stop Docker services
 cd /home/admn/Documents/project/SR-BE-interview-1

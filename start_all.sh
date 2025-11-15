@@ -46,6 +46,10 @@ if command -v psql > /dev/null; then
     echo "  Running Sales migrations..."
     PGPASSWORD=${DB_PASSWORD} psql -h ${DB_HOST:-localhost} -p ${DB_PORT:-5432} -U ${DB_USER} -d ${DB_NAME} -f migrations/sales/000001_create_sales_orders_order_items_tables.up.sql > /dev/null 2>&1 || echo "  Sales migration may already exist"
     
+    # Run Purchase migrations
+    echo "  Running Purchase migrations..."
+    PGPASSWORD=${DB_PASSWORD} psql -h ${DB_HOST:-localhost} -p ${DB_PORT:-5432} -U ${DB_USER} -d ${DB_NAME} -f migrations/purchase/000001_create_purchase_orders_purchase_order_items_tables.up.sql > /dev/null 2>&1 || echo "  Purchase migration may already exist"
+    
     echo "✅ Migrations completed"
 else
     echo "⚠️  psql not found, skipping migrations. Please run migrations manually."
@@ -147,13 +151,39 @@ else
 fi
 echo ""
 
-# Step 6: Start Gateway
-echo "🌐 Step 6: Starting Gateway on port ${GATEWAY_PORT:-8000}..."
+# Step 6: Start Purchase Service
+echo "🛒 Step 6: Starting Purchase Service on port ${PURCHASE_SERVICE_PORT:-8005}..."
+PORT=${PURCHASE_SERVICE_PORT:-8005} \
+DB_HOST=${DB_HOST} \
+DB_PORT=${DB_PORT} \
+DB_USER=${DB_USER} \
+DB_PASSWORD=${DB_PASSWORD} \
+DB_NAME=${DB_NAME} \
+JWT_SECRET=${JWT_SECRET} \
+NATS_URL=${NATS_URL} \
+CONTACT_SERVICE_URL=${CONTACT_SERVICE_URL:-http://localhost:8001} \
+INVENTORY_SERVICE_URL=${INVENTORY_SERVICE_URL:-http://localhost:8003} \
+go run services/purchase/cmd/main.go > /tmp/purchase.log 2>&1 &
+PURCHASE_PID=$!
+echo $PURCHASE_PID > /tmp/purchase.pid
+sleep 3
+
+if curl -s http://localhost:${PURCHASE_SERVICE_PORT:-8005}/health > /dev/null; then
+    echo "✅ Purchase Service started (PID: $PURCHASE_PID)"
+else
+    echo "❌ Purchase Service failed to start. Check /tmp/purchase.log"
+    exit 1
+fi
+echo ""
+
+# Step 7: Start Gateway
+echo "🌐 Step 7: Starting Gateway on port ${GATEWAY_PORT:-8000}..."
 PORT=${GATEWAY_PORT:-8000} \
 AUTH_SERVICE_URL=${AUTH_SERVICE_URL} \
 CONTACT_SERVICE_URL=${CONTACT_SERVICE_URL} \
 INVENTORY_SERVICE_URL=${INVENTORY_SERVICE_URL} \
 SALES_SERVICE_URL=${SALES_SERVICE_URL:-http://localhost:8004} \
+PURCHASE_SERVICE_URL=${PURCHASE_SERVICE_URL:-http://localhost:8005} \
 JWT_SECRET=${JWT_SECRET} \
 go run gateway/cmd/main.go > /tmp/gateway.log 2>&1 &
 GATEWAY_PID=$!
@@ -178,6 +208,7 @@ echo "  🔐 Auth:        http://localhost:${AUTH_SERVICE_PORT:-8002}"
 echo "  📇 Contact:     http://localhost:${CONTACT_SERVICE_PORT:-8001}"
 echo "  📦 Inventory:   http://localhost:${INVENTORY_SERVICE_PORT:-8003}"
 echo "  💰 Sales:       http://localhost:${SALES_SERVICE_PORT:-8004}"
+echo "  🛒 Purchase:    http://localhost:${PURCHASE_SERVICE_PORT:-8005}"
 echo "  📡 NATS:        http://localhost:8222 (monitoring)"
 echo ""
 echo "Health Checks:"
@@ -186,18 +217,21 @@ echo "  Auth:      $(curl -s http://localhost:${AUTH_SERVICE_PORT:-8002}/health 
 echo "  Contact:   $(curl -s http://localhost:${CONTACT_SERVICE_PORT:-8001}/health | jq -r '.status // "OK"' 2>/dev/null || echo 'OK')"
 echo "  Inventory: $(curl -s http://localhost:${INVENTORY_SERVICE_PORT:-8003}/health | jq -r '.status // "OK"' 2>/dev/null || echo 'OK')"
 echo "  Sales:     $(curl -s http://localhost:${SALES_SERVICE_PORT:-8004}/health | jq -r '.status // "OK"' 2>/dev/null || echo 'OK')"
+echo "  Purchase:  $(curl -s http://localhost:${PURCHASE_SERVICE_PORT:-8005}/health | jq -r '.status // "OK"' 2>/dev/null || echo 'OK')"
 echo ""
 echo "Swagger UI:"
 echo "  Auth:      http://localhost:${AUTH_SERVICE_PORT:-8002}/swagger/index.html"
 echo "  Contact:   http://localhost:${CONTACT_SERVICE_PORT:-8001}/swagger/index.html"
 echo "  Inventory: http://localhost:${INVENTORY_SERVICE_PORT:-8003}/swagger/index.html"
 echo "  Sales:     http://localhost:${SALES_SERVICE_PORT:-8004}/swagger/index.html"
+echo "  Purchase:  http://localhost:${PURCHASE_SERVICE_PORT:-8005}/swagger/index.html"
 echo ""
 echo "Logs:"
 echo "  Auth:      tail -f /tmp/auth.log"
 echo "  Contact:   tail -f /tmp/contact.log"
 echo "  Inventory: tail -f /tmp/inventory.log"
 echo "  Sales:     tail -f /tmp/sales.log"
+echo "  Purchase:  tail -f /tmp/purchase.log"
 echo "  Gateway:   tail -f /tmp/gateway.log"
 echo ""
 echo "To stop all services:"
