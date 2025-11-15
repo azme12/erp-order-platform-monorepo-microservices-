@@ -120,10 +120,19 @@ func (rt *Router) forwardToService(serviceName, path string) http.HandlerFunc {
 		if targetPath == "" {
 			requestPath := r.URL.Path
 			if strings.HasPrefix(requestPath, "/api/") {
-				targetPath = requestPath[4:]
+				pathAfterAPI := requestPath[5:]
+				servicePrefix := serviceName + "/"
+				if strings.HasPrefix(pathAfterAPI, servicePrefix) {
+					targetPath = "/" + pathAfterAPI[len(servicePrefix):]
+				} else {
+					targetPath = "/" + pathAfterAPI
+				}
 			} else {
 				targetPath = requestPath
 			}
+		}
+		if !strings.HasPrefix(targetPath, "/") {
+			targetPath = "/" + targetPath
 		}
 		targetURL := serviceURL + targetPath
 
