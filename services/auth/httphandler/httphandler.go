@@ -24,16 +24,6 @@ func NewHandler(usecase *auth.Usecase, logger log.Logger) *Handler {
 	}
 }
 
-// @Summary Register a new user
-// @Description Register a new user with email, password, and role
-// @Tags auth
-// @Accept json
-// @Produce json
-// @Param request body model.RegisterRequest true "Registration request"
-// @Success 201 {object} model.User
-// @Failure 400 {string} string "Bad Request"
-// @Failure 409 {string} string "Conflict"
-// @Router /register [post]
 func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
@@ -59,16 +49,6 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 	response.SendSuccessResponse(w, http.StatusCreated, "User registered successfully", &user, nil)
 }
 
-// @Summary Login user
-// @Description Authenticate user and return JWT token
-// @Tags auth
-// @Accept json
-// @Produce json
-// @Param request body model.LoginRequest true "Login request"
-// @Success 200 {object} model.LoginResponse
-// @Failure 400 {string} string "Bad Request"
-// @Failure 401 {string} string "Unauthorized"
-// @Router /login [post]
 func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
@@ -94,15 +74,6 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	response.SendSuccessResponse(w, http.StatusOK, "Login successful", &loginResp, nil)
 }
 
-// @Summary Forgot password
-// @Description Generate a password reset token for the user
-// @Tags auth
-// @Accept json
-// @Produce json
-// @Param request body model.ForgotPasswordRequest true "Forgot password request"
-// @Success 200 {object} model.ForgotPasswordResponse
-// @Failure 400 {string} string "Bad Request"
-// @Router /forgot-password [post]
 func (h *Handler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
@@ -128,16 +99,6 @@ func (h *Handler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 	response.SendSuccessResponse(w, http.StatusOK, forgotResp.Message, &forgotResp, nil)
 }
 
-// @Summary Reset password
-// @Description Reset user password using reset token
-// @Tags auth
-// @Accept json
-// @Produce json
-// @Param request body model.ResetPasswordRequest true "Reset password request"
-// @Success 200 {string} string "Password reset successfully"
-// @Failure 400 {string} string "Bad Request"
-// @Failure 401 {string} string "Unauthorized"
-// @Router /reset-password [post]
 func (h *Handler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
@@ -160,4 +121,29 @@ func (h *Handler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response.SendSuccessResponse(w, http.StatusOK, "Password reset successfully", nil, nil)
+}
+
+func (h *Handler) GenerateServiceToken(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
+
+	var req model.ServiceTokenRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.SendErrorResponse(w, errors.ErrBadRequest)
+		return
+	}
+
+	if err := req.Validate(); err != nil {
+		response.SendErrorResponse(w, err)
+		return
+	}
+
+	tokenResp, err := h.usecase.GenerateServiceToken(ctx, req)
+	if err != nil {
+		h.logger.Error(ctx, "failed to generate service token", zap.Error(err))
+		response.SendErrorResponse(w, err)
+		return
+	}
+
+	response.SendSuccessResponse(w, http.StatusOK, "Service token generated successfully", &tokenResp, nil)
 }

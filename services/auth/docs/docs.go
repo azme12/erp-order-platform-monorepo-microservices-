@@ -201,6 +201,52 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/service-token": {
+            "post": {
+                "description": "Generate JWT token for service-to-service communication",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Generate inter-service token",
+                "parameters": [
+                    {
+                        "description": "Service token request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.ServiceTokenRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.ServiceTokenResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -291,6 +337,32 @@ const docTemplate = `{
                     "minLength": 6
                 },
                 "reset_token": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.ServiceTokenRequest": {
+            "type": "object",
+            "required": [
+                "service_name",
+                "service_secret"
+            ],
+            "properties": {
+                "service_name": {
+                    "type": "string"
+                },
+                "service_secret": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.ServiceTokenResponse": {
+            "type": "object",
+            "properties": {
+                "expires_in": {
+                    "type": "integer"
+                },
+                "token": {
                     "type": "string"
                 }
             }

@@ -157,3 +157,30 @@ func (u *Usecase) ResetPassword(ctx context.Context, req model.ResetPasswordRequ
 
 	return nil
 }
+
+func (u *Usecase) GenerateServiceToken(ctx context.Context, req model.ServiceTokenRequest) (model.ServiceTokenResponse, error) {
+
+	expectedSecrets := map[string]string{
+		"sales":     u.jwtSecret + "_sales",
+		"purchase":  u.jwtSecret + "_purchase",
+		"contact":   u.jwtSecret + "_contact",
+		"inventory": u.jwtSecret + "_inventory",
+	}
+
+	expectedSecret, ok := expectedSecrets[req.ServiceName]
+	if !ok || req.ServiceSecret != expectedSecret {
+		return model.ServiceTokenResponse{}, errors.ErrUnauthorized
+	}
+
+	serviceExpHours := 1
+	token, err := jwt.GenerateServiceToken(req.ServiceName, u.jwtSecret, serviceExpHours)
+	if err != nil {
+		return model.ServiceTokenResponse{}, errors.ErrInternalServerError
+	}
+
+	const secondsPerHour = 3600
+	return model.ServiceTokenResponse{
+		Token:     token,
+		ExpiresIn: serviceExpHours * secondsPerHour,
+	}, nil
+}

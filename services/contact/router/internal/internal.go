@@ -2,6 +2,7 @@ package internal
 
 import (
 	"microservice-challenge/package/middleware"
+	routerpkg "microservice-challenge/package/router"
 	"microservice-challenge/services/contact/httphandler"
 	"net/http"
 
@@ -9,7 +10,7 @@ import (
 )
 
 func InitContactRoutes(router chi.Router, handler *httphandler.Handler, authMiddleware *middleware.AuthMiddleware) {
-	routes := []Route{
+	routes := []routerpkg.Route{
 		{
 			Method:      http.MethodGet,
 			Path:        "/customers",
@@ -72,5 +73,5 @@ func InitContactRoutes(router chi.Router, handler *httphandler.Handler, authMidd
 		},
 	}
 
-	RegisterRoutes(router, routes)
+	routerpkg.RegisterRoutes(router, routes)
 }

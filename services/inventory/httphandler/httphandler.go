@@ -26,20 +26,6 @@ func NewHandler(usecase *inventory.Usecase, logger log.Logger) *Handler {
 	}
 }
 
-// @Summary List items
-// @Description Get a list of items. Supports both pagination styles: page/size or limit/offset
-// @Tags items
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Param page query int false "Page number (1-based)" default(1)
-// @Param size query int false "Page size" default(10)
-// @Param limit query int false "Limit (alternative to size)" default(10)
-// @Param offset query int false "Offset (alternative to page)" default(0)
-// @Success 200 {array} model.Item
-// @Failure 400 {string} string "Bad Request"
-// @Failure 401 {string} string "Unauthorized"
-// @Router /items [get]
 func (h *Handler) ListItems(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
@@ -55,18 +41,6 @@ func (h *Handler) ListItems(w http.ResponseWriter, r *http.Request) {
 	response.SendSuccessResponse(w, http.StatusOK, "Items retrieved successfully", items, nil)
 }
 
-// @Summary Get item by ID
-// @Description Get an item by ID
-// @Tags items
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Param id path string true "Item ID"
-// @Success 200 {object} model.Item
-// @Failure 400 {string} string "Bad Request"
-// @Failure 401 {string} string "Unauthorized"
-// @Failure 404 {string} string "Not Found"
-// @Router /items/{id} [get]
 func (h *Handler) GetItem(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	id := chi.URLParam(r, "id")
@@ -81,18 +55,6 @@ func (h *Handler) GetItem(w http.ResponseWriter, r *http.Request) {
 	response.SendSuccessResponse(w, http.StatusOK, "Item retrieved successfully", item, nil)
 }
 
-// @Summary Create item
-// @Description Create a new item
-// @Tags items
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Param request body model.CreateItemRequest true "Create item request"
-// @Success 201 {object} model.Item
-// @Failure 400 {string} string "Bad Request"
-// @Failure 401 {string} string "Unauthorized"
-// @Failure 409 {string} string "Conflict"
-// @Router /items [post]
 func (h *Handler) CreateItem(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
@@ -118,20 +80,6 @@ func (h *Handler) CreateItem(w http.ResponseWriter, r *http.Request) {
 	response.SendSuccessResponse(w, http.StatusCreated, "Item created successfully", item, nil)
 }
 
-// @Summary Update item
-// @Description Update an item
-// @Tags items
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Param id path string true "Item ID"
-// @Param request body model.UpdateItemRequest true "Update item request"
-// @Success 200 {object} model.Item
-// @Failure 400 {string} string "Bad Request"
-// @Failure 401 {string} string "Unauthorized"
-// @Failure 404 {string} string "Not Found"
-// @Failure 409 {string} string "Conflict"
-// @Router /items/{id} [put]
 func (h *Handler) UpdateItem(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	id := chi.URLParam(r, "id")
@@ -158,19 +106,6 @@ func (h *Handler) UpdateItem(w http.ResponseWriter, r *http.Request) {
 	response.SendSuccessResponse(w, http.StatusOK, "Item updated successfully", item, nil)
 }
 
-// @Summary Delete item
-// @Description Delete an item
-// @Tags items
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Param id path string true "Item ID"
-// @Success 200 {string} string "Item deleted successfully"
-// @Failure 400 {string} string "Bad Request"
-// @Failure 401 {string} string "Unauthorized"
-// @Failure 403 {string} string "Forbidden"
-// @Failure 404 {string} string "Not Found"
-// @Router /items/{id} [delete]
 func (h *Handler) DeleteItem(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	id := chi.URLParam(r, "id")
@@ -184,18 +119,6 @@ func (h *Handler) DeleteItem(w http.ResponseWriter, r *http.Request) {
 	response.SendSuccessResponse(w, http.StatusOK, "Item deleted successfully", nil, nil)
 }
 
-// @Summary Get stock by item ID
-// @Description Get stock information for an item
-// @Tags stock
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Param item_id path string true "Item ID"
-// @Success 200 {object} model.Stock
-// @Failure 400 {string} string "Bad Request"
-// @Failure 401 {string} string "Unauthorized"
-// @Failure 404 {string} string "Not Found"
-// @Router /items/{item_id}/stock [get]
 func (h *Handler) GetStock(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	itemID := chi.URLParam(r, "item_id")
@@ -210,19 +133,6 @@ func (h *Handler) GetStock(w http.ResponseWriter, r *http.Request) {
 	response.SendSuccessResponse(w, http.StatusOK, "Stock retrieved successfully", stock, nil)
 }
 
-// @Summary Adjust stock
-// @Description Adjust stock quantity for an item (positive to increase, negative to decrease)
-// @Tags stock
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Param item_id path string true "Item ID"
-// @Param request body model.AdjustStockRequest true "Adjust stock request"
-// @Success 200 {object} model.Stock
-// @Failure 400 {string} string "Bad Request"
-// @Failure 401 {string} string "Unauthorized"
-// @Failure 404 {string} string "Not Found"
-// @Router /items/{item_id}/stock [put]
 func (h *Handler) AdjustStock(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	itemID := chi.URLParam(r, "item_id")

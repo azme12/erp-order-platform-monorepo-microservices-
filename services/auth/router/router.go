@@ -35,8 +35,13 @@ func NewRouter(handler *httphandler.Handler, _ log.Logger) http.Handler {
 	})
 
 	r.Route("/", func(r chi.Router) {
-		r.Handle("/swagger/*", httpSwagger.WrapHandler)
-		internal.InitAuthRoutes(r, handler)
+		r.Handle("/swagger/*", httpSwagger.Handler(
+			httpSwagger.URL("http://localhost:8002/swagger/doc.json"),
+		))
+
+		r.Group(func(r chi.Router) {
+			internal.InitAuthRoutes(r, handler)
+		})
 	})
 
 	return r

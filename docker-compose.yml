@@ -1,19 +1,90 @@
 services:
-  db:
+
+  db-auth:
     image: postgres:16.10
-    container_name: db
-    env_file:
-      - .env
+    container_name: db-auth
     environment:
-      POSTGRES_DB: ${DB_NAME}
-      POSTGRES_USER: ${DB_USER}
+      POSTGRES_DB: auth
+      POSTGRES_USER: ${DB_USER:-microservice}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
     ports:
-      - "${DB_PORT:-5432}:5432"
+      - "5432:5432"
     volumes:
-      - db_data:/var/lib/postgresql/data
+      - db_auth_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-microservice}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+
+  db-contact:
+    image: postgres:16.10
+    container_name: db-contact
+    environment:
+      POSTGRES_DB: contact
+      POSTGRES_USER: ${DB_USER:-microservice}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "5433:5432"
+    volumes:
+      - db_contact_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-microservice}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+
+  db-inventory:
+    image: postgres:16.10
+    container_name: db-inventory
+    environment:
+      POSTGRES_DB: inventory
+      POSTGRES_USER: ${DB_USER:-microservice}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "5434:5432"
+    volumes:
+      - db_inventory_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-microservice}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+
+  db-sales:
+    image: postgres:16.10
+    container_name: db-sales
+    environment:
+      POSTGRES_DB: sales
+      POSTGRES_USER: ${DB_USER:-microservice}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "5435:5432"
+    volumes:
+      - db_sales_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-microservice}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+
+  db-purchase:
+    image: postgres:16.10
+    container_name: db-purchase
+    environment:
+      POSTGRES_DB: purchase
+      POSTGRES_USER: ${DB_USER:-microservice}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "5436:5432"
+    volumes:
+      - db_purchase_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-microservice}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -42,16 +113,16 @@ services:
       - "${AUTH_SERVICE_PORT:-8002}:8000"
     environment:
       - PORT=8000
-      - DB_HOST=db
+      - DB_HOST=db-auth
       - DB_PORT=5432
-      - DB_USER=${DB_USER}
+      - DB_USER=${DB_USER:-microservice}
       - DB_PASSWORD=${DB_PASSWORD}
-      - DB_NAME=${DB_NAME}
+      - DB_NAME=auth
       - JWT_SECRET=${JWT_SECRET}
       - JWT_USER_EXPIRATION_HOURS=${JWT_USER_EXPIRATION_HOURS:-24}
       - NATS_URL=nats://nats:4222
     depends_on:
-      db:
+      db-auth:
         condition: service_healthy
 
   contact:
@@ -65,15 +136,15 @@ services:
       - "${CONTACT_SERVICE_PORT:-8001}:8000"
     environment:
       - PORT=8000
-      - DB_HOST=db
+      - DB_HOST=db-contact
       - DB_PORT=5432
-      - DB_USER=${DB_USER}
+      - DB_USER=${DB_USER:-microservice}
       - DB_PASSWORD=${DB_PASSWORD}
-      - DB_NAME=${DB_NAME}
+      - DB_NAME=contact
       - JWT_SECRET=${JWT_SECRET}
       - NATS_URL=nats://nats:4222
     depends_on:
-      db:
+      db-contact:
         condition: service_healthy
       nats:
         condition: service_healthy
@@ -89,15 +160,15 @@ services:
       - "${INVENTORY_SERVICE_PORT:-8003}:8000"
     environment:
       - PORT=8000
-      - DB_HOST=db
+      - DB_HOST=db-inventory
       - DB_PORT=5432
-      - DB_USER=${DB_USER}
+      - DB_USER=${DB_USER:-microservice}
       - DB_PASSWORD=${DB_PASSWORD}
-      - DB_NAME=${DB_NAME}
+      - DB_NAME=inventory
       - JWT_SECRET=${JWT_SECRET}
       - NATS_URL=nats://nats:4222
     depends_on:
-      db:
+      db-inventory:
         condition: service_healthy
       nats:
         condition: service_healthy
@@ -113,17 +184,18 @@ services:
       - "${SALES_SERVICE_PORT:-8004}:8000"
     environment:
       - PORT=8000
-      - DB_HOST=db
+      - DB_HOST=db-sales
       - DB_PORT=5432
-      - DB_USER=${DB_USER}
+      - DB_USER=${DB_USER:-microservice}
       - DB_PASSWORD=${DB_PASSWORD}
-      - DB_NAME=${DB_NAME}
+      - DB_NAME=sales
       - JWT_SECRET=${JWT_SECRET}
       - NATS_URL=nats://nats:4222
+      - AUTH_SERVICE_URL=${AUTH_SERVICE_URL:-http://auth:8000}
       - CONTACT_SERVICE_URL=http://contact:8000
       - INVENTORY_SERVICE_URL=http://inventory:8000
     depends_on:
-      db:
+      db-sales:
         condition: service_healthy
       nats:
         condition: service_healthy
@@ -143,17 +215,18 @@ services:
       - "${PURCHASE_SERVICE_PORT:-8005}:8000"
     environment:
       - PORT=8000
-      - DB_HOST=db
+      - DB_HOST=db-purchase
       - DB_PORT=5432
-      - DB_USER=${DB_USER}
+      - DB_USER=${DB_USER:-microservice}
       - DB_PASSWORD=${DB_PASSWORD}
-      - DB_NAME=${DB_NAME}
+      - DB_NAME=purchase
       - JWT_SECRET=${JWT_SECRET}
       - NATS_URL=nats://nats:4222
+      - AUTH_SERVICE_URL=${AUTH_SERVICE_URL:-http://auth:8000}
       - CONTACT_SERVICE_URL=http://contact:8000
       - INVENTORY_SERVICE_URL=http://inventory:8000
     depends_on:
-      db:
+      db-purchase:
         condition: service_healthy
       nats:
         condition: service_healthy
@@ -187,5 +260,9 @@ services:
       - purchase
 
 volumes:
-  db_data:
+  db_auth_data:
+  db_contact_data:
+  db_inventory_data:
+  db_sales_data:
+  db_purchase_data:
 

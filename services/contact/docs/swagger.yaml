@@ -39,67 +39,6 @@ definitions:
       updated_at:
         type: string
     type: object
-  model.ForgotPasswordRequest:
-    properties:
-      email:
-        type: string
-    required:
-    - email
-    type: object
-  model.ForgotPasswordResponse:
-    properties:
-      message:
-        type: string
-      reset_token:
-        type: string
-    type: object
-  model.LoginRequest:
-    properties:
-      email:
-        type: string
-      password:
-        type: string
-    required:
-    - email
-    - password
-    type: object
-  model.LoginResponse:
-    properties:
-      access_token:
-        type: string
-      expires_in:
-        type: integer
-      user:
-        $ref: '#/definitions/model.User'
-    type: object
-  model.RegisterRequest:
-    properties:
-      email:
-        type: string
-      password:
-        minLength: 6
-        type: string
-      role:
-        enum:
-        - inventory_manager
-        - finance_manager
-        type: string
-    required:
-    - email
-    - password
-    - role
-    type: object
-  model.ResetPasswordRequest:
-    properties:
-      new_password:
-        minLength: 6
-        type: string
-      reset_token:
-        type: string
-    required:
-    - new_password
-    - reset_token
-    type: object
   model.UpdateCustomerRequest:
     properties:
       address:
@@ -120,19 +59,6 @@ definitions:
       name:
         type: string
       phone:
-        type: string
-    type: object
-  model.User:
-    properties:
-      created_at:
-        type: string
-      email:
-        type: string
-      id:
-        type: string
-      role:
-        type: string
-      updated_at:
         type: string
     type: object
   model.Vendor:
@@ -170,15 +96,26 @@ paths:
     get:
       consumes:
       - application/json
-      description: Get a list of customers
+      description: 'Get a list of customers. Supports both pagination styles: page/size
+        or limit/offset'
       parameters:
+      - default: 1
+        description: Page number (1-based)
+        in: query
+        name: page
+        type: integer
       - default: 10
-        description: Limit
+        description: Page size
+        in: query
+        name: size
+        type: integer
+      - default: 10
+        description: Limit (alternative to size)
         in: query
         name: limit
         type: integer
       - default: 0
-        description: Offset
+        description: Offset (alternative to page)
         in: query
         name: offset
         type: integer
@@ -356,135 +293,30 @@ paths:
       summary: Update customer
       tags:
       - customers
-  /forgot-password:
-    post:
-      consumes:
-      - application/json
-      description: Generate a password reset token for the user
-      parameters:
-      - description: Forgot password request
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/model.ForgotPasswordRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/model.ForgotPasswordResponse'
-        "400":
-          description: Bad Request
-          schema:
-            type: string
-      summary: Forgot password
-      tags:
-      - auth
-  /login:
-    post:
-      consumes:
-      - application/json
-      description: Authenticate user and return JWT token
-      parameters:
-      - description: Login request
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/model.LoginRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/model.LoginResponse'
-        "400":
-          description: Bad Request
-          schema:
-            type: string
-        "401":
-          description: Unauthorized
-          schema:
-            type: string
-      summary: Login user
-      tags:
-      - auth
-  /register:
-    post:
-      consumes:
-      - application/json
-      description: Register a new user with email, password, and role
-      parameters:
-      - description: Registration request
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/model.RegisterRequest'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/model.User'
-        "400":
-          description: Bad Request
-          schema:
-            type: string
-        "409":
-          description: Conflict
-          schema:
-            type: string
-      summary: Register a new user
-      tags:
-      - auth
-  /reset-password:
-    post:
-      consumes:
-      - application/json
-      description: Reset user password using reset token
-      parameters:
-      - description: Reset password request
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/model.ResetPasswordRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Password reset successfully
-          schema:
-            type: string
-        "400":
-          description: Bad Request
-          schema:
-            type: string
-        "401":
-          description: Unauthorized
-          schema:
-            type: string
-      summary: Reset password
-      tags:
-      - auth
   /vendors:
     get:
       consumes:
       - application/json
-      description: Get a list of vendors
+      description: 'Get a list of vendors. Supports both pagination styles: page/size
+        or limit/offset'
       parameters:
+      - default: 1
+        description: Page number (1-based)
+        in: query
+        name: page
+        type: integer
       - default: 10
-        description: Limit
+        description: Page size
+        in: query
+        name: size
+        type: integer
+      - default: 10
+        description: Limit (alternative to size)
         in: query
         name: limit
         type: integer
       - default: 0
-        description: Offset
+        description: Offset (alternative to page)
         in: query
         name: offset
         type: integer

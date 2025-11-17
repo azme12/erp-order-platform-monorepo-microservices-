@@ -31,6 +31,22 @@ func GenerateUserToken(userID, email, role, secret string, expirationHours int) 
 	return token.SignedString([]byte(secret))
 }
 
+func GenerateServiceToken(serviceName, secret string, expirationHours int) (string, error) {
+	claims := Claims{
+		UserID: serviceName,
+		Email:  serviceName + "@service",
+		Role:   "service",
+		Type:   "service",
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Duration(expirationHours) * time.Hour)),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+		},
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString([]byte(secret))
+}
+
 func ValidateToken(tokenString, secret string) (*Claims, error) {
 	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {

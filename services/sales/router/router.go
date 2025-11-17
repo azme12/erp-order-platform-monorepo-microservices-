@@ -42,8 +42,14 @@ func NewRouter(handler *httphandler.Handler, logger log.Logger, jwtSecret string
 	authMiddleware := middleware.NewAuthMiddleware(jwtSecret, logger)
 
 	r.Route("/", func(r chi.Router) {
-		r.Handle("/swagger/*", httpSwagger.WrapHandler)
-		internal.InitSalesRoutes(r, handler, authMiddleware)
+		r.Handle("/swagger/*", httpSwagger.Handler(
+			httpSwagger.URL("http://localhost:8004/swagger/doc.json"),
+		))
+
+		r.Group(func(r chi.Router) {
+			r.Use(authMiddleware.ValidateToken)
+			internal.InitSalesRoutes(r, handler, authMiddleware)
+		})
 	})
 
 	return r

@@ -32,3 +32,10 @@ func (r *ResetPasswordRequest) Validate() error {
 		validation.Field(&r.NewPassword, validation.Required, validation.Length(6, 100)),
 	)
 }
+
+func (r *ServiceTokenRequest) Validate() error {
+	return validation.ValidateStruct(r,
+		validation.Field(&r.ServiceName, validation.Required),
+		validation.Field(&r.ServiceSecret, validation.Required),
+	)
+}

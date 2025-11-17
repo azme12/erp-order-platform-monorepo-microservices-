@@ -348,4 +348,3 @@ func (s *Storage) AdjustStock(ctx context.Context, itemID string, quantityDelta 
 
 	return nil
 }
-

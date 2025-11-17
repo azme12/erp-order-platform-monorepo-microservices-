@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"microservice-challenge/package/errors"
-	"microservice-challenge/package/jwt"
 	"microservice-challenge/package/log"
 	"microservice-challenge/package/middleware"
 	natsclient "microservice-challenge/package/nats"
@@ -22,27 +21,35 @@ type Usecase struct {
 	natsClient      *natsclient.Client
 	contactClient   *client.ContactClient
 	inventoryClient *client.InventoryClient
-	jwtSecret       string
+	authClient      *client.AuthClient
 	logger          log.Logger
 }
 
-func NewUsecase(storage storage.Storage, natsClient *natsclient.Client, contactClient *client.ContactClient, inventoryClient *client.InventoryClient, jwtSecret string, logger log.Logger) *Usecase {
+func NewUsecase(storage storage.Storage, natsClient *natsclient.Client, contactClient *client.ContactClient, inventoryClient *client.InventoryClient, authClient *client.AuthClient, logger log.Logger) *Usecase {
 	return &Usecase{
 		storage:         storage,
 		natsClient:      natsClient,
 		contactClient:   contactClient,
 		inventoryClient: inventoryClient,
-		jwtSecret:       jwtSecret,
+		authClient:      authClient,
 		logger:          logger,
 	}
 }
 
 func (u *Usecase) getTokenFromContext(ctx context.Context) (string, error) {
+
 	token := ctx.Value(middleware.GetTokenKey())
 	if tokenStr, ok := token.(string); ok && tokenStr != "" {
 		return tokenStr, nil
 	}
-	return jwt.GenerateUserToken("service", "service@sales", "service", u.jwtSecret, 24)
+
+	serviceToken, err := u.authClient.GetServiceToken(ctx)
+	if err != nil {
+		u.logger.Error(ctx, "failed to get service token from auth service", zap.Error(err))
+		return "", errors.ErrInternalServerError
+	}
+
+	return serviceToken, nil
 }
 
 func (u *Usecase) CreateOrder(ctx context.Context, req model.CreateOrderRequest) (model.SalesOrderWithItems, error) {

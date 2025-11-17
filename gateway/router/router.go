@@ -51,43 +51,52 @@ func NewRouter(cfg *config.Config, logger log.Logger) http.Handler {
 			r.Post("/login", router.forwardToService("auth", "/login"))
 			r.Post("/forgot-password", router.forwardToService("auth", "/forgot-password"))
 			r.Post("/reset-password", router.forwardToService("auth", "/reset-password"))
+			r.Post("/service-token", router.forwardToService("auth", "/service-token"))
 		})
 
 		r.Group(func(r chi.Router) {
 			r.Use(authMiddleware.ValidateToken)
 
 			r.Route("/customers", func(r chi.Router) {
-				r.Get("/*", router.forwardToService("contact", ""))
-				r.Post("/*", router.forwardToService("contact", ""))
-				r.Put("/*", router.forwardToService("contact", ""))
-				r.Delete("/*", router.forwardToService("contact", ""))
+				r.Get("/", router.forwardToService("contact", "/customers"))
+				r.Get("/{id}", router.forwardToService("contact", "/customers/{id}"))
+				r.Post("/", router.forwardToService("contact", "/customers"))
+				r.Put("/{id}", router.forwardToService("contact", "/customers/{id}"))
+				r.Delete("/{id}", router.forwardToService("contact", "/customers/{id}"))
 			})
+
 			r.Route("/vendors", func(r chi.Router) {
-				r.Get("/*", router.forwardToService("contact", ""))
-				r.Post("/*", router.forwardToService("contact", ""))
-				r.Put("/*", router.forwardToService("contact", ""))
-				r.Delete("/*", router.forwardToService("contact", ""))
+				r.Get("/", router.forwardToService("contact", "/vendors"))
+				r.Get("/{id}", router.forwardToService("contact", "/vendors/{id}"))
+				r.Post("/", router.forwardToService("contact", "/vendors"))
+				r.Put("/{id}", router.forwardToService("contact", "/vendors/{id}"))
+				r.Delete("/{id}", router.forwardToService("contact", "/vendors/{id}"))
 			})
 
-			r.Route("/inventory", func(r chi.Router) {
-				r.Get("/*", router.forwardToService("inventory", ""))
-				r.Post("/*", router.forwardToService("inventory", ""))
-				r.Put("/*", router.forwardToService("inventory", ""))
-				r.Delete("/*", router.forwardToService("inventory", ""))
+			r.Route("/items", func(r chi.Router) {
+				r.Get("/", router.forwardToService("inventory", "/items"))
+				r.Get("/{id}", router.forwardToService("inventory", "/items/{id}"))
+				r.Post("/", router.forwardToService("inventory", "/items"))
+				r.Put("/{id}", router.forwardToService("inventory", "/items/{id}"))
+				r.Delete("/{id}", router.forwardToService("inventory", "/items/{id}"))
 			})
 
-			r.Route("/sales", func(r chi.Router) {
-				r.Get("/*", router.forwardToService("sales", ""))
-				r.Post("/*", router.forwardToService("sales", ""))
-				r.Put("/*", router.forwardToService("sales", ""))
-				r.Delete("/*", router.forwardToService("sales", ""))
+			r.Route("/sales/orders", func(r chi.Router) {
+				r.Get("/", router.forwardToService("sales", "/orders"))
+				r.Get("/{id}", router.forwardToService("sales", "/orders/{id}"))
+				r.Post("/", router.forwardToService("sales", "/orders"))
+				r.Put("/{id}", router.forwardToService("sales", "/orders/{id}"))
+				r.Post("/{id}/confirm", router.forwardToService("sales", "/orders/{id}/confirm"))
+				r.Post("/{id}/pay", router.forwardToService("sales", "/orders/{id}/pay"))
 			})
 
-			r.Route("/purchase", func(r chi.Router) {
-				r.Get("/*", router.forwardToService("purchase", ""))
-				r.Post("/*", router.forwardToService("purchase", ""))
-				r.Put("/*", router.forwardToService("purchase", ""))
-				r.Delete("/*", router.forwardToService("purchase", ""))
+			r.Route("/purchase/orders", func(r chi.Router) {
+				r.Get("/", router.forwardToService("purchase", "/orders"))
+				r.Get("/{id}", router.forwardToService("purchase", "/orders/{id}"))
+				r.Post("/", router.forwardToService("purchase", "/orders"))
+				r.Put("/{id}", router.forwardToService("purchase", "/orders/{id}"))
+				r.Post("/{id}/receive", router.forwardToService("purchase", "/orders/{id}/receive"))
+				r.Post("/{id}/pay", router.forwardToService("purchase", "/orders/{id}/pay"))
 			})
 		})
 	})
@@ -95,57 +104,35 @@ func NewRouter(cfg *config.Config, logger log.Logger) http.Handler {
 	return r
 }
 
-func (rt *Router) forwardToService(serviceName, path string) http.HandlerFunc {
+func (rt *Router) forwardToService(serviceName string, path string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
-
-		var serviceURL string
+		var baseURL string
 		switch serviceName {
 		case "auth":
-			serviceURL = rt.config.Services.Auth.URL
+			baseURL = rt.config.Services.Auth.URL
 		case "contact":
-			serviceURL = rt.config.Services.Contact.URL
+			baseURL = rt.config.Services.Contact.URL
 		case "inventory":
-			serviceURL = rt.config.Services.Inventory.URL
+			baseURL = rt.config.Services.Inventory.URL
 		case "sales":
-			serviceURL = rt.config.Services.Sales.URL
+			baseURL = rt.config.Services.Sales.URL
 		case "purchase":
-			serviceURL = rt.config.Services.Purchase.URL
+			baseURL = rt.config.Services.Purchase.URL
 		default:
-			http.Error(w, "Service not found", http.StatusNotFound)
+			http.Error(w, "Unknown service", http.StatusBadGateway)
 			return
 		}
 
-		targetPath := path
-		if targetPath == "" {
-			requestPath := r.URL.Path
-			if strings.HasPrefix(requestPath, "/api/") {
-				pathAfterAPI := requestPath[5:]
-				servicePrefix := serviceName + "/"
-				if strings.HasPrefix(pathAfterAPI, servicePrefix) {
-					targetPath = "/" + pathAfterAPI[len(servicePrefix):]
-				} else {
-					targetPath = "/" + pathAfterAPI
-				}
-			} else {
-				targetPath = requestPath
-			}
-		}
-		if !strings.HasPrefix(targetPath, "/") {
-			targetPath = "/" + targetPath
-		}
-		targetURL := serviceURL + targetPath
-
-		if r.URL.RawQuery != "" {
-			targetURL += "?" + r.URL.RawQuery
+		targetURL := baseURL + path
+		if strings.Contains(path, "{id}") {
+			id := chi.URLParamFromCtx(r.Context(), "id")
+			targetURL = strings.Replace(targetURL, "{id}", id, -1)
 		}
 
-		rt.logger.Info(ctx, "forwarding request", zap.String("service", serviceName), zap.String("target", targetURL))
-
-		resp, err := rt.client.ForwardRequest(ctx, targetURL, r)
+		resp, err := rt.client.ForwardRequest(r.Context(), targetURL, r)
 		if err != nil {
-			rt.logger.Error(ctx, "failed to forward request", zap.Error(err))
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			rt.logger.Error(r.Context(), "failed to forward request", zap.String("service", serviceName), zap.Error(err))
+			http.Error(w, "Service unavailable", http.StatusBadGateway)
 			return
 		}
 		defer resp.Body.Close()
@@ -155,12 +142,7 @@ func (rt *Router) forwardToService(serviceName, path string) http.HandlerFunc {
 				w.Header().Add(key, value)
 			}
 		}
-
 		w.WriteHeader(resp.StatusCode)
-
-		_, err = io.Copy(w, resp.Body)
-		if err != nil {
-			rt.logger.Error(ctx, "failed to copy response body", zap.Error(err))
-		}
+		io.Copy(w, resp.Body)
 	}
 }

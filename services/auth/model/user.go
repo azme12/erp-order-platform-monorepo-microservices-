@@ -47,3 +47,13 @@ type ResetPasswordRequest struct {
 	ResetToken  string `json:"reset_token" validate:"required"`
 	NewPassword string `json:"new_password" validate:"required,min=6"`
 }
+
+type ServiceTokenRequest struct {
+	ServiceName   string `json:"service_name" validate:"required"`
+	ServiceSecret string `json:"service_secret" validate:"required"`
+}
+
+type ServiceTokenResponse struct {
+	Token     string `json:"token"`
+	ExpiresIn int    `json:"expires_in"`
+}

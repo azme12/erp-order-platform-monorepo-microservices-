@@ -61,6 +61,23 @@ definitions:
     - new_password
     - reset_token
     type: object
+  model.ServiceTokenRequest:
+    properties:
+      service_name:
+        type: string
+      service_secret:
+        type: string
+    required:
+    - service_name
+    - service_secret
+    type: object
+  model.ServiceTokenResponse:
+    properties:
+      expires_in:
+        type: integer
+      token:
+        type: string
+    type: object
   model.User:
     properties:
       created_at:
@@ -202,6 +219,36 @@ paths:
           schema:
             type: string
       summary: Reset password
+      tags:
+      - auth
+  /service-token:
+    post:
+      consumes:
+      - application/json
+      description: Generate JWT token for service-to-service communication
+      parameters:
+      - description: Service token request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.ServiceTokenRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.ServiceTokenResponse'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+      summary: Generate inter-service token
       tags:
       - auth
 securityDefinitions:

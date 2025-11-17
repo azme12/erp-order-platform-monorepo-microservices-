@@ -1,6 +1,7 @@
 package internal
 
 import (
+	routerpkg "microservice-challenge/package/router"
 	"microservice-challenge/services/auth/httphandler"
 	"net/http"
 
@@ -8,7 +9,7 @@ import (
 )
 
 func InitAuthRoutes(router chi.Router, handler *httphandler.Handler) {
-	routes := []Route{
+	routes := []routerpkg.Route{
 		{
 			Method:  http.MethodPost,
 			Path:    "/register",
@@ -29,7 +30,12 @@ func InitAuthRoutes(router chi.Router, handler *httphandler.Handler) {
 			Path:    "/reset-password",
 			Handler: handler.ResetPassword,
 		},
+		{
+			Method:  http.MethodPost,
+			Path:    "/service-token",
+			Handler: handler.GenerateServiceToken,
+		},
 	}
 
-	RegisterRoutes(router, routes)
+	routerpkg.RegisterRoutes(router, routes)
 }

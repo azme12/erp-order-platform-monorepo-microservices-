@@ -30,4 +30,3 @@ func TimeoutMiddleware(timeout time.Duration) func(next http.Handler) http.Handl
 		})
 	}
 }
-
