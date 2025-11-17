@@ -3,7 +3,7 @@ set -e
 
 cd /home/admn/Documents/project/SR-BE-interview-1
 
-# Check if .env file exists
+
 if [ ! -f .env ]; then
     echo "❌ Error: .env file not found!"
     echo "📋 Please create .env file:"
@@ -12,7 +12,7 @@ if [ ! -f .env ]; then
     exit 1
 fi
 
-# Load environment variables
+
 set -a
 source .env
 set +a
@@ -20,33 +20,33 @@ set +a
 echo "🚀 Starting All Services..."
 echo ""
 
-# Step 1: Start Database and NATS
+
 echo "📦 Step 1: Starting database and NATS..."
 docker compose up -d db nats
 sleep 5
 echo "✅ Database and NATS started"
 echo ""
 
-# Step 1.5: Run Database Migrations
+
 echo "🗄️  Step 1.5: Running database migrations..."
 if command -v psql > /dev/null; then
-    # Run Auth migrations
+
     echo "  Running Auth migrations..."
     PGPASSWORD=${DB_PASSWORD} psql -h ${DB_HOST:-localhost} -p ${DB_PORT:-5432} -U ${DB_USER} -d ${DB_NAME} -f migrations/auth/000001_create_users_table.up.sql > /dev/null 2>&1 || echo "  Auth migration may already exist"
     
-    # Run Contact migrations
+
     echo "  Running Contact migrations..."
     PGPASSWORD=${DB_PASSWORD} psql -h ${DB_HOST:-localhost} -p ${DB_PORT:-5432} -U ${DB_USER} -d ${DB_NAME} -f migrations/contact/000001_create_customers_vendors_tables.up.sql > /dev/null 2>&1 || echo "  Contact migration may already exist"
     
-    # Run Inventory migrations
+
     echo "  Running Inventory migrations..."
     PGPASSWORD=${DB_PASSWORD} psql -h ${DB_HOST:-localhost} -p ${DB_PORT:-5432} -U ${DB_USER} -d ${DB_NAME} -f migrations/inventory/000001_create_items_stock_tables.up.sql > /dev/null 2>&1 || echo "  Inventory migration may already exist"
     
-    # Run Sales migrations
+
     echo "  Running Sales migrations..."
     PGPASSWORD=${DB_PASSWORD} psql -h ${DB_HOST:-localhost} -p ${DB_PORT:-5432} -U ${DB_USER} -d ${DB_NAME} -f migrations/sales/000001_create_sales_orders_order_items_tables.up.sql > /dev/null 2>&1 || echo "  Sales migration may already exist"
     
-    # Run Purchase migrations
+
     echo "  Running Purchase migrations..."
     PGPASSWORD=${DB_PASSWORD} psql -h ${DB_HOST:-localhost} -p ${DB_PORT:-5432} -U ${DB_USER} -d ${DB_NAME} -f migrations/purchase/000001_create_purchase_orders_purchase_order_items_tables.up.sql > /dev/null 2>&1 || echo "  Purchase migration may already exist"
     
@@ -56,7 +56,7 @@ else
 fi
 echo ""
 
-# Step 2: Start Auth Service
+
 echo "🔐 Step 2: Starting Auth Service on port ${AUTH_SERVICE_PORT:-8002}..."
 PORT=${AUTH_SERVICE_PORT:-8002} \
 DB_HOST=${DB_HOST} \
@@ -80,7 +80,7 @@ else
 fi
 echo ""
 
-# Step 3: Start Contact Service
+
 echo "📇 Step 3: Starting Contact Service on port ${CONTACT_SERVICE_PORT:-8001}..."
 PORT=${CONTACT_SERVICE_PORT:-8001} \
 DB_HOST=${DB_HOST} \
@@ -103,7 +103,7 @@ else
 fi
 echo ""
 
-# Step 4: Start Inventory Service
+
 echo "📦 Step 4: Starting Inventory Service on port ${INVENTORY_SERVICE_PORT:-8003}..."
 PORT=${INVENTORY_SERVICE_PORT:-8003} \
 DB_HOST=${DB_HOST} \
@@ -126,7 +126,7 @@ else
 fi
 echo ""
 
-# Step 5: Start Sales Service
+
 echo "💰 Step 5: Starting Sales Service on port ${SALES_SERVICE_PORT:-8004}..."
 PORT=${SALES_SERVICE_PORT:-8004} \
 DB_HOST=${DB_HOST} \
@@ -151,7 +151,7 @@ else
 fi
 echo ""
 
-# Step 6: Start Purchase Service
+
 echo "🛒 Step 6: Starting Purchase Service on port ${PURCHASE_SERVICE_PORT:-8005}..."
 PORT=${PURCHASE_SERVICE_PORT:-8005} \
 DB_HOST=${DB_HOST} \
@@ -176,7 +176,7 @@ else
 fi
 echo ""
 
-# Step 7: Start Gateway
+
 echo "🌐 Step 7: Starting Gateway on port ${GATEWAY_PORT:-8000}..."
 PORT=${GATEWAY_PORT:-8000} \
 AUTH_SERVICE_URL=${AUTH_SERVICE_URL} \

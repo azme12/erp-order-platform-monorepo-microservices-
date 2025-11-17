@@ -43,3 +43,20 @@ COMPLETE_IMPLEMENTATION_PLAN.md
 # Scripts
 start_all.sh
 stop_all.sh
+cleanup.sh
+
+# Test files
+e2e_test.go
+run_*_test.sh
+run_e2e*.sh
+E2E_INTEGRATION_TEST_RESULTS.md
+GAP_ANALYSIS.md
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Binary files
+*.bin

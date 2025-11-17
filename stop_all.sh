@@ -3,7 +3,7 @@
 echo "🛑 Stopping all services..."
 echo ""
 
-# Kill services by PID if they exist
+
 if [ -f /tmp/auth.pid ]; then
     AUTH_PID=$(cat /tmp/auth.pid)
     if ps -p $AUTH_PID > /dev/null 2>&1; then
@@ -58,7 +58,7 @@ if [ -f /tmp/gateway.pid ]; then
     rm -f /tmp/gateway.pid
 fi
 
-# Kill any remaining processes on the ports
+
 lsof -ti:8000 | xargs kill -9 2>/dev/null || true
 lsof -ti:8001 | xargs kill -9 2>/dev/null || true
 lsof -ti:8002 | xargs kill -9 2>/dev/null || true
@@ -66,7 +66,7 @@ lsof -ti:8003 | xargs kill -9 2>/dev/null || true
 lsof -ti:8004 | xargs kill -9 2>/dev/null || true
 lsof -ti:8005 | xargs kill -9 2>/dev/null || true
 
-# Stop Docker services
+
 cd /home/admn/Documents/project/SR-BE-interview-1
 docker compose stop db nats 2>/dev/null || true
 
