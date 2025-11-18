@@ -3,8 +3,10 @@ package postgresql
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"microservice-challenge/package/errors"
 	"microservice-challenge/services/sales/model"
+	"strings"
 
 	"github.com/google/uuid"
 )
@@ -191,6 +193,44 @@ func (s *Storage) CreateOrderItem(ctx context.Context, item model.OrderItem) err
 		item.UpdatedAt,
 	)
 
+	if err != nil {
+		return errors.ErrInternalServerError
+	}
+
+	return nil
+}
+
+func (s *Storage) CreateOrderItems(ctx context.Context, items []model.OrderItem) error {
+	if len(items) == 0 {
+		return nil
+	}
+
+	query := `
+		INSERT INTO order_items (id, order_id, item_id, quantity, unit_price, subtotal, created_at, updated_at)
+		VALUES `
+
+	values := make([]interface{}, 0, len(items)*8)
+	placeholders := make([]string, 0, len(items))
+
+	for i, item := range items {
+		offset := i * 8
+		placeholders = append(placeholders, fmt.Sprintf("($%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d)",
+			offset+1, offset+2, offset+3, offset+4, offset+5, offset+6, offset+7, offset+8))
+		values = append(values,
+			item.ID,
+			item.OrderID,
+			item.ItemID,
+			item.Quantity,
+			item.UnitPrice,
+			item.Subtotal,
+			item.CreatedAt,
+			item.UpdatedAt,
+		)
+	}
+
+	query += strings.Join(placeholders, ", ")
+
+	_, err := s.db.ExecContext(ctx, query, values...)
 	if err != nil {
 		return errors.ErrInternalServerError
 	}

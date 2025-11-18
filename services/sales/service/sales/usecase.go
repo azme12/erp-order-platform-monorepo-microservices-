@@ -1,4 +1,4 @@
-package sales
+package service
 
 import (
 	"context"
@@ -10,13 +10,14 @@ import (
 	"microservice-challenge/services/sales/client"
 	"microservice-challenge/services/sales/model"
 	"microservice-challenge/services/sales/storage"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
 
-type Usecase struct {
+type Service struct {
 	storage         storage.Storage
 	natsClient      *natsclient.Client
 	contactClient   *client.ContactClient
@@ -25,8 +26,8 @@ type Usecase struct {
 	logger          log.Logger
 }
 
-func NewUsecase(storage storage.Storage, natsClient *natsclient.Client, contactClient *client.ContactClient, inventoryClient *client.InventoryClient, authClient *client.AuthClient, logger log.Logger) *Usecase {
-	return &Usecase{
+func NewService(storage storage.Storage, natsClient *natsclient.Client, contactClient *client.ContactClient, inventoryClient *client.InventoryClient, authClient *client.AuthClient, logger log.Logger) *Service {
+	return &Service{
 		storage:         storage,
 		natsClient:      natsClient,
 		contactClient:   contactClient,
@@ -36,32 +37,32 @@ func NewUsecase(storage storage.Storage, natsClient *natsclient.Client, contactC
 	}
 }
 
-func (u *Usecase) getTokenFromContext(ctx context.Context) (string, error) {
+func (s *Service) getTokenFromContext(ctx context.Context) (string, error) {
 
 	token := ctx.Value(middleware.GetTokenKey())
 	if tokenStr, ok := token.(string); ok && tokenStr != "" {
 		return tokenStr, nil
 	}
 
-	serviceToken, err := u.authClient.GetServiceToken(ctx)
+	serviceToken, err := s.authClient.GetServiceToken(ctx)
 	if err != nil {
-		u.logger.Error(ctx, "failed to get service token from auth service", zap.Error(err))
+		s.logger.Error(ctx, "failed to get service token from auth service", zap.Error(err))
 		return "", errors.ErrInternalServerError
 	}
 
 	return serviceToken, nil
 }
 
-func (u *Usecase) CreateOrder(ctx context.Context, req model.CreateOrderRequest) (model.SalesOrderWithItems, error) {
-	token, err := u.getTokenFromContext(ctx)
+func (s *Service) CreateOrder(ctx context.Context, req model.CreateOrderRequest) (model.SalesOrderWithItems, error) {
+	token, err := s.getTokenFromContext(ctx)
 	if err != nil {
-		u.logger.Error(ctx, "failed to get token from context", zap.Error(err))
+		s.logger.Error(ctx, "failed to get token from context", zap.Error(err))
 		return model.SalesOrderWithItems{}, errors.ErrInternalServerError
 	}
 
-	_, err = u.contactClient.GetCustomerByID(ctx, req.CustomerID.String(), token)
+	_, err = s.contactClient.GetCustomerByID(ctx, req.CustomerID.String(), token)
 	if err != nil {
-		u.logger.Error(ctx, "failed to validate customer", zap.String("customer_id", req.CustomerID.String()), zap.Error(err), zap.String("error_type", fmt.Sprintf("%T", err)), zap.String("error_msg", err.Error()))
+		s.logger.Error(ctx, "failed to validate customer", zap.String("customer_id", req.CustomerID.String()), zap.Error(err), zap.String("error_type", fmt.Sprintf("%T", err)), zap.String("error_msg", err.Error()))
 		if err == errors.ErrNotFound {
 			return model.SalesOrderWithItems{}, errors.ErrBadRequest
 		}
@@ -77,60 +78,67 @@ func (u *Usecase) CreateOrder(ctx context.Context, req model.CreateOrderRequest)
 		UpdatedAt:   time.Now(),
 	}
 
+	// Validate all items in parallel for better performance
+	type itemResult struct {
+		item     model.OrderItem
+		subtotal float64
+		err      error
+		itemReq  model.CreateOrderItemRequest
+	}
+
+	results := make(chan itemResult, len(req.Items))
+	var wg sync.WaitGroup
+
+	for _, itemReq := range req.Items {
+		wg.Add(1)
+		go func(ir model.CreateOrderItemRequest) {
+			defer wg.Done()
+			inventoryItem, err := s.inventoryClient.GetItemByID(ctx, ir.ItemID.String(), token)
+			if err != nil {
+				results <- itemResult{err: err, itemReq: ir}
+				return
+			}
+
+			subtotal := inventoryItem.UnitPrice * float64(ir.Quantity)
+			item := model.OrderItem{
+				ID:        uuid.New(),
+				OrderID:   order.ID,
+				ItemID:    ir.ItemID,
+				Quantity:  ir.Quantity,
+				UnitPrice: inventoryItem.UnitPrice,
+				Subtotal:  subtotal,
+				CreatedAt: time.Now(),
+				UpdatedAt: time.Now(),
+			}
+			results <- itemResult{item: item, subtotal: subtotal}
+		}(itemReq)
+	}
+
+	wg.Wait()
+	close(results)
+
 	var totalAmount float64
 	items := make([]model.OrderItem, 0, len(req.Items))
 
-	for _, itemReq := range req.Items {
-		inventoryItem, err := u.inventoryClient.GetItemByID(ctx, itemReq.ItemID.String(), token)
-		if err != nil {
-			u.logger.Error(ctx, "failed to validate item", zap.String("item_id", itemReq.ItemID.String()), zap.Error(err))
-			if err == errors.ErrNotFound {
+	for result := range results {
+		if result.err != nil {
+			s.logger.Error(ctx, "failed to validate item", zap.String("item_id", result.itemReq.ItemID.String()), zap.Error(result.err))
+			if result.err == errors.ErrNotFound {
 				return model.SalesOrderWithItems{}, errors.ErrBadRequest
 			}
-			return model.SalesOrderWithItems{}, err
+			return model.SalesOrderWithItems{}, result.err
 		}
-
-		subtotal := inventoryItem.UnitPrice * float64(itemReq.Quantity)
-		item := model.OrderItem{
-			ID:        uuid.New(),
-			OrderID:   order.ID,
-			ItemID:    itemReq.ItemID,
-			Quantity:  itemReq.Quantity,
-			UnitPrice: inventoryItem.UnitPrice,
-			Subtotal:  subtotal,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
-		}
-		items = append(items, item)
-		totalAmount += subtotal
+		items = append(items, result.item)
+		totalAmount += result.subtotal
 	}
 
 	order.TotalAmount = totalAmount
 
-	if err := u.storage.CreateOrder(ctx, order); err != nil {
+	if err := s.storage.CreateOrder(ctx, order); err != nil {
 		return model.SalesOrderWithItems{}, err
 	}
 
-	for _, item := range items {
-		if err := u.storage.CreateOrderItem(ctx, item); err != nil {
-			return model.SalesOrderWithItems{}, err
-		}
-	}
-
-	return model.SalesOrderWithItems{
-		SalesOrder: order,
-		Items:      items,
-	}, nil
-}
-
-func (u *Usecase) GetOrderByID(ctx context.Context, id string) (model.SalesOrderWithItems, error) {
-	order, err := u.storage.GetOrderByID(ctx, id)
-	if err != nil {
-		return model.SalesOrderWithItems{}, err
-	}
-
-	items, err := u.storage.GetOrderItemsByOrderID(ctx, id)
-	if err != nil {
+	if err := s.storage.CreateOrderItems(ctx, items); err != nil {
 		return model.SalesOrderWithItems{}, err
 	}
 
@@ -140,12 +148,29 @@ func (u *Usecase) GetOrderByID(ctx context.Context, id string) (model.SalesOrder
 	}, nil
 }
 
-func (u *Usecase) ListOrders(ctx context.Context, limit, offset int) ([]model.SalesOrder, error) {
-	return u.storage.ListOrders(ctx, limit, offset)
+func (s *Service) GetOrderByID(ctx context.Context, id string) (model.SalesOrderWithItems, error) {
+	order, err := s.storage.GetOrderByID(ctx, id)
+	if err != nil {
+		return model.SalesOrderWithItems{}, err
+	}
+
+	items, err := s.storage.GetOrderItemsByOrderID(ctx, id)
+	if err != nil {
+		return model.SalesOrderWithItems{}, err
+	}
+
+	return model.SalesOrderWithItems{
+		SalesOrder: order,
+		Items:      items,
+	}, nil
 }
 
-func (u *Usecase) UpdateOrder(ctx context.Context, id string, req model.UpdateOrderRequest) (model.SalesOrderWithItems, error) {
-	order, err := u.storage.GetOrderByID(ctx, id)
+func (s *Service) ListOrders(ctx context.Context, limit, offset int) ([]model.SalesOrder, error) {
+	return s.storage.ListOrders(ctx, limit, offset)
+}
+
+func (s *Service) UpdateOrder(ctx context.Context, id string, req model.UpdateOrderRequest) (model.SalesOrderWithItems, error) {
+	order, err := s.storage.GetOrderByID(ctx, id)
 	if err != nil {
 		return model.SalesOrderWithItems{}, err
 	}
@@ -154,11 +179,11 @@ func (u *Usecase) UpdateOrder(ctx context.Context, id string, req model.UpdateOr
 		return model.SalesOrderWithItems{}, errors.ErrBadRequest
 	}
 
-	if err := u.storage.DeleteOrderItemsByOrderID(ctx, id); err != nil {
+	if err := s.storage.DeleteOrderItemsByOrderID(ctx, id); err != nil {
 		return model.SalesOrderWithItems{}, err
 	}
 
-	token, err := u.getTokenFromContext(ctx)
+	token, err := s.getTokenFromContext(ctx)
 	if err != nil {
 		return model.SalesOrderWithItems{}, errors.ErrInternalServerError
 	}
@@ -167,9 +192,9 @@ func (u *Usecase) UpdateOrder(ctx context.Context, id string, req model.UpdateOr
 	items := make([]model.OrderItem, 0, len(req.Items))
 
 	for _, itemReq := range req.Items {
-		inventoryItem, err := u.inventoryClient.GetItemByID(ctx, itemReq.ItemID.String(), token)
+		inventoryItem, err := s.inventoryClient.GetItemByID(ctx, itemReq.ItemID.String(), token)
 		if err != nil {
-			u.logger.Error(ctx, "failed to validate item", zap.String("item_id", itemReq.ItemID.String()), zap.Error(err))
+			s.logger.Error(ctx, "failed to validate item", zap.String("item_id", itemReq.ItemID.String()), zap.Error(err))
 			if err == errors.ErrNotFound {
 				return model.SalesOrderWithItems{}, errors.ErrBadRequest
 			}
@@ -194,14 +219,16 @@ func (u *Usecase) UpdateOrder(ctx context.Context, id string, req model.UpdateOr
 	order.TotalAmount = totalAmount
 	order.UpdatedAt = time.Now()
 
-	if err := u.storage.UpdateOrder(ctx, order); err != nil {
+	if err := s.storage.UpdateOrder(ctx, order); err != nil {
 		return model.SalesOrderWithItems{}, err
 	}
 
-	for _, item := range items {
-		if err := u.storage.CreateOrderItem(ctx, item); err != nil {
-			return model.SalesOrderWithItems{}, err
-		}
+	if err := s.storage.DeleteOrderItemsByOrderID(ctx, id); err != nil {
+		return model.SalesOrderWithItems{}, err
+	}
+
+	if err := s.storage.CreateOrderItems(ctx, items); err != nil {
+		return model.SalesOrderWithItems{}, err
 	}
 
 	return model.SalesOrderWithItems{
@@ -210,8 +237,8 @@ func (u *Usecase) UpdateOrder(ctx context.Context, id string, req model.UpdateOr
 	}, nil
 }
 
-func (u *Usecase) ConfirmOrder(ctx context.Context, id string) (model.SalesOrderWithItems, error) {
-	order, err := u.storage.GetOrderByID(ctx, id)
+func (s *Service) ConfirmOrder(ctx context.Context, id string) (model.SalesOrderWithItems, error) {
+	order, err := s.storage.GetOrderByID(ctx, id)
 	if err != nil {
 		return model.SalesOrderWithItems{}, err
 	}
@@ -220,12 +247,12 @@ func (u *Usecase) ConfirmOrder(ctx context.Context, id string) (model.SalesOrder
 		return model.SalesOrderWithItems{}, errors.ErrBadRequest
 	}
 
-	items, err := u.storage.GetOrderItemsByOrderID(ctx, id)
+	items, err := s.storage.GetOrderItemsByOrderID(ctx, id)
 	if err != nil {
 		return model.SalesOrderWithItems{}, err
 	}
 
-	if err := u.storage.UpdateOrderStatus(ctx, id, model.OrderStatusConfirmed); err != nil {
+	if err := s.storage.UpdateOrderStatus(ctx, id, model.OrderStatusConfirmed); err != nil {
 		return model.SalesOrderWithItems{}, err
 	}
 
@@ -251,10 +278,10 @@ func (u *Usecase) ConfirmOrder(ctx context.Context, id string) (model.SalesOrder
 		"timestamp":    time.Now().Format(time.RFC3339),
 	}
 
-	if err := u.natsClient.Publish("sales.order.confirmed", event); err != nil {
-		u.logger.Error(ctx, "failed to publish sales.order.confirmed event", zap.Error(err))
+	if err := s.natsClient.Publish("sales.order.confirmed", event); err != nil {
+		s.logger.Error(ctx, "failed to publish sales.order.confirmed event", zap.Error(err))
 	} else {
-		u.logger.Info(ctx, "published sales.order.confirmed event",
+		s.logger.Info(ctx, "published sales.order.confirmed event",
 			zap.String("order_id", order.ID.String()),
 			zap.String("customer_id", order.CustomerID.String()),
 		)
@@ -266,8 +293,8 @@ func (u *Usecase) ConfirmOrder(ctx context.Context, id string) (model.SalesOrder
 	}, nil
 }
 
-func (u *Usecase) PayOrder(ctx context.Context, id string) (model.SalesOrderWithItems, error) {
-	order, err := u.storage.GetOrderByID(ctx, id)
+func (s *Service) PayOrder(ctx context.Context, id string) (model.SalesOrderWithItems, error) {
+	order, err := s.storage.GetOrderByID(ctx, id)
 	if err != nil {
 		return model.SalesOrderWithItems{}, err
 	}
@@ -276,14 +303,14 @@ func (u *Usecase) PayOrder(ctx context.Context, id string) (model.SalesOrderWith
 		return model.SalesOrderWithItems{}, errors.ErrBadRequest
 	}
 
-	if err := u.storage.UpdateOrderStatus(ctx, id, model.OrderStatusPaid); err != nil {
+	if err := s.storage.UpdateOrderStatus(ctx, id, model.OrderStatusPaid); err != nil {
 		return model.SalesOrderWithItems{}, err
 	}
 
 	order.Status = model.OrderStatusPaid
 	order.UpdatedAt = time.Now()
 
-	items, err := u.storage.GetOrderItemsByOrderID(ctx, id)
+	items, err := s.storage.GetOrderItemsByOrderID(ctx, id)
 	if err != nil {
 		return model.SalesOrderWithItems{}, err
 	}

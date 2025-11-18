@@ -7,14 +7,19 @@ import (
 )
 
 type User struct {
-	ID                  uuid.UUID  `json:"id" db:"id"`
-	Email               string     `json:"email" db:"email"`
+	// Identifiers
+	ID    uuid.UUID `json:"id" db:"id"`
+	Email string    `json:"email" db:"email"`
+
+	// Security fields
 	PasswordHash        string     `json:"-" db:"password_hash"`
 	Role                string     `json:"role" db:"role"`
 	ResetToken          *string    `json:"-" db:"reset_token"`
 	ResetTokenExpiresAt *time.Time `json:"-" db:"reset_token_expires_at"`
-	CreatedAt           time.Time  `json:"created_at" db:"created_at"`
-	UpdatedAt           time.Time  `json:"updated_at" db:"updated_at"`
+
+	// Timestamps
+	CreatedAt time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
 }
 
 type RegisterRequest struct {

@@ -1,8 +1,9 @@
-package contact
+package service
 
 import (
 	"context"
-	"microservice-challenge/package/errors"
+	"errors"
+	pkgerrors "microservice-challenge/package/errors"
 	"microservice-challenge/package/log"
 	"microservice-challenge/package/nats"
 	"microservice-challenge/services/contact/model"
@@ -14,28 +15,28 @@ import (
 	"go.uber.org/zap"
 )
 
-type Usecase struct {
+type Service struct {
 	storage    storage.Storage
 	natsClient *nats.Client
 	logger     log.Logger
 }
 
-func NewUsecase(storage storage.Storage, natsClient *nats.Client, logger log.Logger) *Usecase {
-	return &Usecase{
+func NewService(storage storage.Storage, natsClient *nats.Client, logger log.Logger) *Service {
+	return &Service{
 		storage:    storage,
 		natsClient: natsClient,
 		logger:     logger,
 	}
 }
 
-func (u *Usecase) CreateCustomer(ctx context.Context, req model.CreateCustomerRequest) (model.Customer, error) {
+func (s *Service) CreateCustomer(ctx context.Context, req model.CreateCustomerRequest) (model.Customer, error) {
 	email := strings.ToLower(strings.TrimSpace(req.Email))
 
-	_, err := u.storage.GetCustomerByEmail(ctx, email)
+	_, err := s.storage.GetCustomerByEmail(ctx, email)
 	if err == nil {
-		return model.Customer{}, errors.ErrConflict
+		return model.Customer{}, pkgerrors.ErrConflict
 	}
-	if err != nil && err != errors.ErrNotFound {
+	if !errors.Is(err, pkgerrors.ErrNotFound) {
 		return model.Customer{}, err
 	}
 
@@ -49,7 +50,7 @@ func (u *Usecase) CreateCustomer(ctx context.Context, req model.CreateCustomerRe
 		UpdatedAt: time.Now(),
 	}
 
-	if err := u.storage.CreateCustomer(ctx, customer); err != nil {
+	if err := s.storage.CreateCustomer(ctx, customer); err != nil {
 		return model.Customer{}, err
 	}
 
@@ -60,34 +61,34 @@ func (u *Usecase) CreateCustomer(ctx context.Context, req model.CreateCustomerRe
 		"email":       customer.Email,
 		"timestamp":   time.Now().Format(time.RFC3339),
 	}
-	if err := u.natsClient.Publish("contact.customer.created", event); err != nil {
-		u.logger.Error(ctx, "failed to publish customer created event", zap.Error(err))
+	if err := s.natsClient.Publish("contact.customer.created", event); err != nil {
+		s.logger.Error(ctx, "failed to publish customer created event", zap.Error(err))
 	}
 
 	return customer, nil
 }
 
-func (u *Usecase) GetCustomerByID(ctx context.Context, id string) (model.Customer, error) {
-	return u.storage.GetCustomerByID(ctx, id)
+func (s *Service) GetCustomerByID(ctx context.Context, id string) (model.Customer, error) {
+	return s.storage.GetCustomerByID(ctx, id)
 }
 
-func (u *Usecase) ListCustomers(ctx context.Context, limit, offset int) ([]model.Customer, error) {
-	return u.storage.ListCustomers(ctx, limit, offset)
+func (s *Service) ListCustomers(ctx context.Context, limit, offset int) ([]model.Customer, error) {
+	return s.storage.ListCustomers(ctx, limit, offset)
 }
 
-func (u *Usecase) UpdateCustomer(ctx context.Context, id string, req model.UpdateCustomerRequest) (model.Customer, error) {
-	customer, err := u.storage.GetCustomerByID(ctx, id)
+func (s *Service) UpdateCustomer(ctx context.Context, id string, req model.UpdateCustomerRequest) (model.Customer, error) {
+	customer, err := s.storage.GetCustomerByID(ctx, id)
 	if err != nil {
 		return model.Customer{}, err
 	}
 
 	email := strings.ToLower(strings.TrimSpace(req.Email))
 	if email != customer.Email {
-		_, err := u.storage.GetCustomerByEmail(ctx, email)
+		_, err := s.storage.GetCustomerByEmail(ctx, email)
 		if err == nil {
-			return model.Customer{}, errors.ErrConflict
+			return model.Customer{}, pkgerrors.ErrConflict
 		}
-		if err != nil && err != errors.ErrNotFound {
+		if !errors.Is(err, pkgerrors.ErrNotFound) {
 			return model.Customer{}, err
 		}
 	}
@@ -98,7 +99,7 @@ func (u *Usecase) UpdateCustomer(ctx context.Context, id string, req model.Updat
 	customer.Address = strings.TrimSpace(req.Address)
 	customer.UpdatedAt = time.Now()
 
-	if err := u.storage.UpdateCustomer(ctx, customer); err != nil {
+	if err := s.storage.UpdateCustomer(ctx, customer); err != nil {
 		return model.Customer{}, err
 	}
 
@@ -109,25 +110,25 @@ func (u *Usecase) UpdateCustomer(ctx context.Context, id string, req model.Updat
 		"email":       customer.Email,
 		"timestamp":   time.Now().Format(time.RFC3339),
 	}
-	if err := u.natsClient.Publish("contact.customer.updated", event); err != nil {
-		u.logger.Error(ctx, "failed to publish customer updated event", zap.Error(err))
+	if err := s.natsClient.Publish("contact.customer.updated", event); err != nil {
+		s.logger.Error(ctx, "failed to publish customer updated event", zap.Error(err))
 	}
 
 	return customer, nil
 }
 
-func (u *Usecase) DeleteCustomer(ctx context.Context, id string) error {
-	return u.storage.DeleteCustomer(ctx, id)
+func (s *Service) DeleteCustomer(ctx context.Context, id string) error {
+	return s.storage.DeleteCustomer(ctx, id)
 }
 
-func (u *Usecase) CreateVendor(ctx context.Context, req model.CreateVendorRequest) (model.Vendor, error) {
+func (s *Service) CreateVendor(ctx context.Context, req model.CreateVendorRequest) (model.Vendor, error) {
 	email := strings.ToLower(strings.TrimSpace(req.Email))
 
-	_, err := u.storage.GetVendorByEmail(ctx, email)
+	_, err := s.storage.GetVendorByEmail(ctx, email)
 	if err == nil {
-		return model.Vendor{}, errors.ErrConflict
+		return model.Vendor{}, pkgerrors.ErrConflict
 	}
-	if err != nil && err != errors.ErrNotFound {
+	if !errors.Is(err, pkgerrors.ErrNotFound) {
 		return model.Vendor{}, err
 	}
 
@@ -141,7 +142,7 @@ func (u *Usecase) CreateVendor(ctx context.Context, req model.CreateVendorReques
 		UpdatedAt: time.Now(),
 	}
 
-	if err := u.storage.CreateVendor(ctx, vendor); err != nil {
+	if err := s.storage.CreateVendor(ctx, vendor); err != nil {
 		return model.Vendor{}, err
 	}
 
@@ -152,34 +153,34 @@ func (u *Usecase) CreateVendor(ctx context.Context, req model.CreateVendorReques
 		"email":      vendor.Email,
 		"timestamp":  time.Now().Format(time.RFC3339),
 	}
-	if err := u.natsClient.Publish("contact.vendor.created", event); err != nil {
-		u.logger.Error(ctx, "failed to publish vendor created event", zap.Error(err))
+	if err := s.natsClient.Publish("contact.vendor.created", event); err != nil {
+		s.logger.Error(ctx, "failed to publish vendor created event", zap.Error(err))
 	}
 
 	return vendor, nil
 }
 
-func (u *Usecase) GetVendorByID(ctx context.Context, id string) (model.Vendor, error) {
-	return u.storage.GetVendorByID(ctx, id)
+func (s *Service) GetVendorByID(ctx context.Context, id string) (model.Vendor, error) {
+	return s.storage.GetVendorByID(ctx, id)
 }
 
-func (u *Usecase) ListVendors(ctx context.Context, limit, offset int) ([]model.Vendor, error) {
-	return u.storage.ListVendors(ctx, limit, offset)
+func (s *Service) ListVendors(ctx context.Context, limit, offset int) ([]model.Vendor, error) {
+	return s.storage.ListVendors(ctx, limit, offset)
 }
 
-func (u *Usecase) UpdateVendor(ctx context.Context, id string, req model.UpdateVendorRequest) (model.Vendor, error) {
-	vendor, err := u.storage.GetVendorByID(ctx, id)
+func (s *Service) UpdateVendor(ctx context.Context, id string, req model.UpdateVendorRequest) (model.Vendor, error) {
+	vendor, err := s.storage.GetVendorByID(ctx, id)
 	if err != nil {
 		return model.Vendor{}, err
 	}
 
 	email := strings.ToLower(strings.TrimSpace(req.Email))
 	if email != vendor.Email {
-		_, err := u.storage.GetVendorByEmail(ctx, email)
+		_, err := s.storage.GetVendorByEmail(ctx, email)
 		if err == nil {
-			return model.Vendor{}, errors.ErrConflict
+			return model.Vendor{}, pkgerrors.ErrConflict
 		}
-		if err != nil && err != errors.ErrNotFound {
+		if !errors.Is(err, pkgerrors.ErrNotFound) {
 			return model.Vendor{}, err
 		}
 	}
@@ -190,7 +191,7 @@ func (u *Usecase) UpdateVendor(ctx context.Context, id string, req model.UpdateV
 	vendor.Address = strings.TrimSpace(req.Address)
 	vendor.UpdatedAt = time.Now()
 
-	if err := u.storage.UpdateVendor(ctx, vendor); err != nil {
+	if err := s.storage.UpdateVendor(ctx, vendor); err != nil {
 		return model.Vendor{}, err
 	}
 
@@ -201,13 +202,13 @@ func (u *Usecase) UpdateVendor(ctx context.Context, id string, req model.UpdateV
 		"email":      vendor.Email,
 		"timestamp":  time.Now().Format(time.RFC3339),
 	}
-	if err := u.natsClient.Publish("contact.vendor.updated", event); err != nil {
-		u.logger.Error(ctx, "failed to publish vendor updated event", zap.Error(err))
+	if err := s.natsClient.Publish("contact.vendor.updated", event); err != nil {
+		s.logger.Error(ctx, "failed to publish vendor updated event", zap.Error(err))
 	}
 
 	return vendor, nil
 }
 
-func (u *Usecase) DeleteVendor(ctx context.Context, id string) error {
-	return u.storage.DeleteVendor(ctx, id)
+func (s *Service) DeleteVendor(ctx context.Context, id string) error {
+	return s.storage.DeleteVendor(ctx, id)
 }

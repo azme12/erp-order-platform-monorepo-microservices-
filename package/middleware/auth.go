@@ -15,10 +15,11 @@ import (
 type contextKey string
 
 const (
-	userIDKey contextKey = "user_id"
-	emailKey  contextKey = "email"
-	roleKey   contextKey = "role"
-	tokenKey  contextKey = "token"
+	userIDKey    contextKey = "user_id"
+	emailKey     contextKey = "email"
+	roleKey      contextKey = "role"
+	tokenKey     contextKey = "token"
+	tokenTypeKey contextKey = "token_type"
 )
 
 type AuthMiddleware struct {
@@ -62,6 +63,7 @@ func (m *AuthMiddleware) ValidateToken(next http.Handler) http.Handler {
 		ctx = context.WithValue(ctx, emailKey, claims.Email)
 		ctx = context.WithValue(ctx, roleKey, claims.Role)
 		ctx = context.WithValue(ctx, tokenKey, tokenString)
+		ctx = context.WithValue(ctx, tokenTypeKey, claims.Type)
 
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
@@ -71,6 +73,13 @@ func (m *AuthMiddleware) RequireRole(allowedRoles ...string) func(http.Handler) 
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ctx := r.Context()
+
+			// Allow service tokens to bypass role checks for inter-service communication
+			tokenType, _ := ctx.Value(tokenTypeKey).(string)
+			if tokenType == "service" {
+				next.ServeHTTP(w, r)
+				return
+			}
 
 			role, ok := ctx.Value(roleKey).(string)
 			if !ok || role == "" {

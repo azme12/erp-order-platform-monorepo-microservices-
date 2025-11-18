@@ -1,4 +1,4 @@
-package inventory
+package service
 
 import (
 	"context"
@@ -16,24 +16,24 @@ import (
 	"go.uber.org/zap"
 )
 
-type Usecase struct {
+type Service struct {
 	storage    storage.Storage
 	natsClient *natsclient.Client
 	logger     log.Logger
 }
 
-func NewUsecase(storage storage.Storage, natsClient *natsclient.Client, logger log.Logger) *Usecase {
-	return &Usecase{
+func NewService(storage storage.Storage, natsClient *natsclient.Client, logger log.Logger) *Service {
+	return &Service{
 		storage:    storage,
 		natsClient: natsClient,
 		logger:     logger,
 	}
 }
 
-func (u *Usecase) CreateItem(ctx context.Context, req model.CreateItemRequest) (model.Item, error) {
+func (s *Service) CreateItem(ctx context.Context, req model.CreateItemRequest) (model.Item, error) {
 	sku := strings.ToUpper(strings.TrimSpace(req.SKU))
 
-	_, err := u.storage.GetItemBySKU(ctx, sku)
+	_, err := s.storage.GetItemBySKU(ctx, sku)
 	if err == nil {
 		return model.Item{}, errors.ErrConflict
 	}
@@ -51,7 +51,7 @@ func (u *Usecase) CreateItem(ctx context.Context, req model.CreateItemRequest) (
 		UpdatedAt:   time.Now(),
 	}
 
-	if err := u.storage.CreateItem(ctx, item); err != nil {
+	if err := s.storage.CreateItem(ctx, item); err != nil {
 		return model.Item{}, err
 	}
 
@@ -63,30 +63,30 @@ func (u *Usecase) CreateItem(ctx context.Context, req model.CreateItemRequest) (
 		UpdatedAt: time.Now(),
 	}
 
-	if err := u.storage.CreateStock(ctx, stock); err != nil {
-		u.logger.Error(ctx, "failed to create initial stock", zap.Error(err))
+	if err := s.storage.CreateStock(ctx, stock); err != nil {
+		s.logger.Error(ctx, "failed to create initial stock", zap.Error(err))
 	}
 
 	return item, nil
 }
 
-func (u *Usecase) GetItemByID(ctx context.Context, id string) (model.Item, error) {
-	return u.storage.GetItemByID(ctx, id)
+func (s *Service) GetItemByID(ctx context.Context, id string) (model.Item, error) {
+	return s.storage.GetItemByID(ctx, id)
 }
 
-func (u *Usecase) ListItems(ctx context.Context, limit, offset int) ([]model.Item, error) {
-	return u.storage.ListItems(ctx, limit, offset)
+func (s *Service) ListItems(ctx context.Context, limit, offset int) ([]model.Item, error) {
+	return s.storage.ListItems(ctx, limit, offset)
 }
 
-func (u *Usecase) UpdateItem(ctx context.Context, id string, req model.UpdateItemRequest) (model.Item, error) {
-	item, err := u.storage.GetItemByID(ctx, id)
+func (s *Service) UpdateItem(ctx context.Context, id string, req model.UpdateItemRequest) (model.Item, error) {
+	item, err := s.storage.GetItemByID(ctx, id)
 	if err != nil {
 		return model.Item{}, err
 	}
 
 	sku := strings.ToUpper(strings.TrimSpace(req.SKU))
 	if sku != item.SKU {
-		_, err := u.storage.GetItemBySKU(ctx, sku)
+		_, err := s.storage.GetItemBySKU(ctx, sku)
 		if err == nil {
 			return model.Item{}, errors.ErrConflict
 		}
@@ -101,32 +101,32 @@ func (u *Usecase) UpdateItem(ctx context.Context, id string, req model.UpdateIte
 	item.UnitPrice = req.UnitPrice
 	item.UpdatedAt = time.Now()
 
-	if err := u.storage.UpdateItem(ctx, item); err != nil {
+	if err := s.storage.UpdateItem(ctx, item); err != nil {
 		return model.Item{}, err
 	}
 
 	return item, nil
 }
 
-func (u *Usecase) DeleteItem(ctx context.Context, id string) error {
-	return u.storage.DeleteItem(ctx, id)
+func (s *Service) DeleteItem(ctx context.Context, id string) error {
+	return s.storage.DeleteItem(ctx, id)
 }
 
-func (u *Usecase) GetStockByItemID(ctx context.Context, itemID string) (model.Stock, error) {
-	return u.storage.GetStockByItemID(ctx, itemID)
+func (s *Service) GetStockByItemID(ctx context.Context, itemID string) (model.Stock, error) {
+	return s.storage.GetStockByItemID(ctx, itemID)
 }
 
-func (u *Usecase) AdjustStock(ctx context.Context, itemID string, quantity int) (model.Stock, error) {
-	_, err := u.storage.GetItemByID(ctx, itemID)
+func (s *Service) AdjustStock(ctx context.Context, itemID string, quantity int) (model.Stock, error) {
+	_, err := s.storage.GetItemByID(ctx, itemID)
 	if err != nil {
 		return model.Stock{}, err
 	}
 
-	if err := u.storage.AdjustStock(ctx, itemID, quantity); err != nil {
+	if err := s.storage.AdjustStock(ctx, itemID, quantity); err != nil {
 		return model.Stock{}, err
 	}
 
-	stock, err := u.storage.GetStockByItemID(ctx, itemID)
+	stock, err := s.storage.GetStockByItemID(ctx, itemID)
 	if err != nil {
 		return model.Stock{}, err
 	}
@@ -134,36 +134,36 @@ func (u *Usecase) AdjustStock(ctx context.Context, itemID string, quantity int) 
 	return stock, nil
 }
 
-func (u *Usecase) StartEventSubscriptions(ctx context.Context) error {
-	salesSub, err := u.natsClient.Subscribe("sales.order.confirmed", func(msg *nats.Msg) {
-		u.handleSalesOrderConfirmed(ctx, msg)
+func (s *Service) StartEventSubscriptions(ctx context.Context) error {
+	salesSub, err := s.natsClient.Subscribe("sales.order.confirmed", func(msg *nats.Msg) {
+		s.handleSalesOrderConfirmed(ctx, msg)
 	})
 	if err != nil {
 		return err
 	}
-	u.logger.Info(ctx, "subscribed to sales.order.confirmed", zap.String("subscription", salesSub.Subject))
+	s.logger.Info(ctx, "subscribed to sales.order.confirmed", zap.String("subscription", salesSub.Subject))
 
-	purchaseSub, err := u.natsClient.Subscribe("purchase.order.received", func(msg *nats.Msg) {
-		u.handlePurchaseOrderReceived(ctx, msg)
+	purchaseSub, err := s.natsClient.Subscribe("purchase.order.received", func(msg *nats.Msg) {
+		s.handlePurchaseOrderReceived(ctx, msg)
 	})
 	if err != nil {
 		return err
 	}
-	u.logger.Info(ctx, "subscribed to purchase.order.received", zap.String("subscription", purchaseSub.Subject))
+	s.logger.Info(ctx, "subscribed to purchase.order.received", zap.String("subscription", purchaseSub.Subject))
 
 	return nil
 }
 
-func (u *Usecase) handleSalesOrderConfirmed(ctx context.Context, msg *nats.Msg) {
+func (s *Service) handleSalesOrderConfirmed(ctx context.Context, msg *nats.Msg) {
 	var event map[string]interface{}
 	if err := json.Unmarshal(msg.Data, &event); err != nil {
-		u.logger.Error(ctx, "failed to unmarshal sales.order.confirmed event", zap.Error(err))
+		s.logger.Error(ctx, "failed to unmarshal sales.order.confirmed event", zap.Error(err))
 		return
 	}
 
 	items, ok := event["items"].([]interface{})
 	if !ok {
-		u.logger.Error(ctx, "invalid items format in sales.order.confirmed event")
+		s.logger.Error(ctx, "invalid items format in sales.order.confirmed event")
 		return
 	}
 
@@ -183,14 +183,14 @@ func (u *Usecase) handleSalesOrderConfirmed(ctx context.Context, msg *nats.Msg) 
 			continue
 		}
 
-		if err := u.storage.AdjustStock(ctx, itemID, -int(quantity)); err != nil {
-			u.logger.Error(ctx, "failed to decrease stock for sales order",
+		if err := s.storage.AdjustStock(ctx, itemID, -int(quantity)); err != nil {
+			s.logger.Error(ctx, "failed to decrease stock for sales order",
 				zap.String("item_id", itemID),
 				zap.Int("quantity", int(quantity)),
 				zap.Error(err),
 			)
 		} else {
-			u.logger.Info(ctx, "decreased stock for sales order",
+			s.logger.Info(ctx, "decreased stock for sales order",
 				zap.String("item_id", itemID),
 				zap.Int("quantity", int(quantity)),
 			)
@@ -198,16 +198,16 @@ func (u *Usecase) handleSalesOrderConfirmed(ctx context.Context, msg *nats.Msg) 
 	}
 }
 
-func (u *Usecase) handlePurchaseOrderReceived(ctx context.Context, msg *nats.Msg) {
+func (s *Service) handlePurchaseOrderReceived(ctx context.Context, msg *nats.Msg) {
 	var event map[string]interface{}
 	if err := json.Unmarshal(msg.Data, &event); err != nil {
-		u.logger.Error(ctx, "failed to unmarshal purchase.order.received event", zap.Error(err))
+		s.logger.Error(ctx, "failed to unmarshal purchase.order.received event", zap.Error(err))
 		return
 	}
 
 	items, ok := event["items"].([]interface{})
 	if !ok {
-		u.logger.Error(ctx, "invalid items format in purchase.order.received event")
+		s.logger.Error(ctx, "invalid items format in purchase.order.received event")
 		return
 	}
 
@@ -227,14 +227,14 @@ func (u *Usecase) handlePurchaseOrderReceived(ctx context.Context, msg *nats.Msg
 			continue
 		}
 
-		if err := u.storage.AdjustStock(ctx, itemID, int(quantity)); err != nil {
-			u.logger.Error(ctx, "failed to increase stock for purchase order",
+		if err := s.storage.AdjustStock(ctx, itemID, int(quantity)); err != nil {
+			s.logger.Error(ctx, "failed to increase stock for purchase order",
 				zap.String("item_id", itemID),
 				zap.Int("quantity", int(quantity)),
 				zap.Error(err),
 			)
 		} else {
-			u.logger.Info(ctx, "increased stock for purchase order",
+			s.logger.Info(ctx, "increased stock for purchase order",
 				zap.String("item_id", itemID),
 				zap.Int("quantity", int(quantity)),
 			)

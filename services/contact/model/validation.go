@@ -10,6 +10,7 @@ func (r *CreateCustomerRequest) Validate() error {
 		validation.Field(&r.Name, validation.Required, validation.Length(1, 255)),
 		validation.Field(&r.Email, validation.Required, is.Email),
 		validation.Field(&r.Phone, validation.Length(0, 50)),
+		validation.Field(&r.Address, validation.Length(0, 500)),
 	)
 }
 
@@ -18,6 +19,7 @@ func (r *UpdateCustomerRequest) Validate() error {
 		validation.Field(&r.Name, validation.Required, validation.Length(1, 255)),
 		validation.Field(&r.Email, validation.Required, is.Email),
 		validation.Field(&r.Phone, validation.Length(0, 50)),
+		validation.Field(&r.Address, validation.Length(0, 500)),
 	)
 }
 
@@ -26,6 +28,7 @@ func (r *CreateVendorRequest) Validate() error {
 		validation.Field(&r.Name, validation.Required, validation.Length(1, 255)),
 		validation.Field(&r.Email, validation.Required, is.Email),
 		validation.Field(&r.Phone, validation.Length(0, 50)),
+		validation.Field(&r.Address, validation.Length(0, 500)),
 	)
 }
 
@@ -34,5 +37,6 @@ func (r *UpdateVendorRequest) Validate() error {
 		validation.Field(&r.Name, validation.Required, validation.Length(1, 255)),
 		validation.Field(&r.Email, validation.Required, is.Email),
 		validation.Field(&r.Phone, validation.Length(0, 50)),
+		validation.Field(&r.Address, validation.Length(0, 500)),
 	)
 }

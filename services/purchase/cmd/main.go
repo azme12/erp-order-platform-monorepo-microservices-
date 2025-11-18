@@ -9,8 +9,8 @@ import (
 	"microservice-challenge/services/purchase/client"
 	"microservice-challenge/services/purchase/httphandler"
 	"microservice-challenge/services/purchase/router"
+	purchaseservice "microservice-challenge/services/purchase/service/purchase"
 	"microservice-challenge/services/purchase/storage/postgresql"
-	"microservice-challenge/services/purchase/usecase/purchase"
 	"net/http"
 	"os"
 	"os/signal"
@@ -99,9 +99,9 @@ func main() {
 
 	storage := postgresql.NewStorage(db)
 
-	usecase := purchase.NewUsecase(storage, natsClient, contactClient, inventoryClient, authClient, logger)
+	service := purchaseservice.NewService(storage, natsClient, contactClient, inventoryClient, authClient, logger)
 
-	handler := httphandler.NewHandler(usecase, logger)
+	handler := httphandler.NewHandler(service, logger)
 	r := router.NewRouter(handler, logger, cfg.JWT.Secret, db)
 
 	port := os.Getenv("PORT")

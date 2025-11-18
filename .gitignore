@@ -39,6 +39,7 @@ go.sum
 
 # Documentation
 COMPLETE_IMPLEMENTATION_PLAN.md
+DEEP_CODE_REVIEW.md
 
 # Scripts
 start_all.sh

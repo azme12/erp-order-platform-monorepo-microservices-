@@ -79,6 +79,8 @@ func NewRouter(cfg *config.Config, logger log.Logger) http.Handler {
 				r.Post("/", router.forwardToService("inventory", "/items"))
 				r.Put("/{id}", router.forwardToService("inventory", "/items/{id}"))
 				r.Delete("/{id}", router.forwardToService("inventory", "/items/{id}"))
+				r.Get("/{item_id}/stock", router.forwardToService("inventory", "/items/{item_id}/stock"))
+				r.Put("/{item_id}/stock", router.forwardToService("inventory", "/items/{item_id}/stock"))
 			})
 
 			r.Route("/sales/orders", func(r chi.Router) {
@@ -124,14 +126,40 @@ func (rt *Router) forwardToService(serviceName string, path string) http.Handler
 		}
 
 		targetURL := baseURL + path
+
+		// Replace all path parameters dynamically
+		// Support multiple parameter names: id, item_id, order_id, etc.
+		ctx := r.Context()
 		if strings.Contains(path, "{id}") {
-			id := chi.URLParamFromCtx(r.Context(), "id")
-			targetURL = strings.Replace(targetURL, "{id}", id, -1)
+			id := chi.URLParamFromCtx(ctx, "id")
+			targetURL = strings.ReplaceAll(targetURL, "{id}", id)
+		}
+		if strings.Contains(path, "{item_id}") {
+			itemID := chi.URLParamFromCtx(ctx, "item_id")
+			targetURL = strings.ReplaceAll(targetURL, "{item_id}", itemID)
+		}
+		if strings.Contains(path, "{order_id}") {
+			orderID := chi.URLParamFromCtx(ctx, "order_id")
+			targetURL = strings.ReplaceAll(targetURL, "{order_id}", orderID)
+		}
+		// Generic replacement for any remaining {param} patterns
+		for {
+			start := strings.Index(targetURL, "{")
+			if start == -1 {
+				break
+			}
+			end := strings.Index(targetURL[start:], "}")
+			if end == -1 {
+				break
+			}
+			paramName := targetURL[start+1 : start+end]
+			paramValue := chi.URLParamFromCtx(ctx, paramName)
+			targetURL = targetURL[:start] + paramValue + targetURL[start+end+1:]
 		}
 
 		resp, err := rt.client.ForwardRequest(r.Context(), targetURL, r)
 		if err != nil {
-			rt.logger.Error(r.Context(), "failed to forward request", zap.String("service", serviceName), zap.Error(err))
+			rt.logger.Error(r.Context(), "failed to forward request", zap.String("service", serviceName), zap.String("url", targetURL), zap.Error(err))
 			http.Error(w, "Service unavailable", http.StatusBadGateway)
 			return
 		}

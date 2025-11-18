@@ -8,8 +8,8 @@ import (
 	"microservice-challenge/package/nats"
 	"microservice-challenge/services/contact/httphandler"
 	"microservice-challenge/services/contact/router"
+	contactservice "microservice-challenge/services/contact/service/contact"
 	"microservice-challenge/services/contact/storage/postgresql"
-	"microservice-challenge/services/contact/usecase/contact"
 	"net/http"
 	"os"
 	"os/signal"
@@ -79,9 +79,9 @@ func main() {
 
 	storage := postgresql.NewStorage(db)
 
-	usecase := contact.NewUsecase(storage, natsClient, logger)
+	service := contactservice.NewService(storage, natsClient, logger)
 
-	handler := httphandler.NewHandler(usecase, logger)
+	handler := httphandler.NewHandler(service, logger)
 	r := router.NewRouter(handler, logger, cfg.JWT.Secret, db)
 
 	port := os.Getenv("PORT")

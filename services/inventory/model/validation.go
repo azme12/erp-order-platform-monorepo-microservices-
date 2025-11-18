@@ -7,6 +7,7 @@ import (
 func (r *CreateItemRequest) Validate() error {
 	return validation.ValidateStruct(r,
 		validation.Field(&r.Name, validation.Required, validation.Length(1, 255)),
+		validation.Field(&r.Description, validation.Length(0, 1000)),
 		validation.Field(&r.SKU, validation.Required, validation.Length(1, 100)),
 		validation.Field(&r.UnitPrice, validation.Required, validation.Min(0.0)),
 	)
@@ -15,6 +16,7 @@ func (r *CreateItemRequest) Validate() error {
 func (r *UpdateItemRequest) Validate() error {
 	return validation.ValidateStruct(r,
 		validation.Field(&r.Name, validation.Required, validation.Length(1, 255)),
+		validation.Field(&r.Description, validation.Length(0, 1000)),
 		validation.Field(&r.SKU, validation.Required, validation.Length(1, 100)),
 		validation.Field(&r.UnitPrice, validation.Required, validation.Min(0.0)),
 	)

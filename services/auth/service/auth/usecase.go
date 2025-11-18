@@ -1,4 +1,4 @@
-package auth
+package service
 
 import (
 	"context"
@@ -15,28 +15,28 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-type Usecase struct {
+type Service struct {
 	storage      storage.Storage
 	jwtSecret    string
 	userExpHours int
 }
 
-func NewUsecase(storage storage.Storage, jwtSecret string, userExpHours int) *Usecase {
-	return &Usecase{
+func NewService(storage storage.Storage, jwtSecret string, userExpHours int) *Service {
+	return &Service{
 		storage:      storage,
 		jwtSecret:    jwtSecret,
 		userExpHours: userExpHours,
 	}
 }
 
-func (u *Usecase) Register(ctx context.Context, req model.RegisterRequest) (model.User, error) {
+func (s *Service) Register(ctx context.Context, req model.RegisterRequest) (model.User, error) {
 	email := strings.ToLower(strings.TrimSpace(req.Email))
 
-	existingUser, err := u.storage.GetUserByEmail(ctx, email)
-	if err == nil && existingUser != nil {
+	_, err := s.storage.GetUserByEmail(ctx, email)
+	if err == nil {
 		return model.User{}, errors.ErrConflict
 	}
-	if err != nil && err != errors.ErrNotFound {
+	if err != errors.ErrNotFound {
 		return model.User{}, err
 	}
 
@@ -54,7 +54,7 @@ func (u *Usecase) Register(ctx context.Context, req model.RegisterRequest) (mode
 		UpdatedAt:    time.Now(),
 	}
 
-	if err := u.storage.CreateUser(ctx, &user); err != nil {
+	if err := s.storage.CreateUser(ctx, &user); err != nil {
 		return model.User{}, err
 	}
 
@@ -62,10 +62,10 @@ func (u *Usecase) Register(ctx context.Context, req model.RegisterRequest) (mode
 	return user, nil
 }
 
-func (u *Usecase) Login(ctx context.Context, req model.LoginRequest) (model.LoginResponse, error) {
+func (s *Service) Login(ctx context.Context, req model.LoginRequest) (model.LoginResponse, error) {
 	email := strings.ToLower(strings.TrimSpace(req.Email))
 
-	user, err := u.storage.GetUserByEmail(ctx, email)
+	user, err := s.storage.GetUserByEmail(ctx, email)
 	if err != nil {
 		if err == errors.ErrNotFound {
 			return model.LoginResponse{}, errors.ErrUnauthorized
@@ -78,7 +78,7 @@ func (u *Usecase) Login(ctx context.Context, req model.LoginRequest) (model.Logi
 		return model.LoginResponse{}, errors.ErrUnauthorized
 	}
 
-	token, err := jwt.GenerateUserToken(user.ID.String(), user.Email, user.Role, u.jwtSecret, u.userExpHours)
+	token, err := jwt.GenerateUserToken(user.ID.String(), user.Email, user.Role, s.jwtSecret, s.userExpHours)
 	if err != nil {
 		return model.LoginResponse{}, errors.ErrInternalServerError
 	}
@@ -88,15 +88,15 @@ func (u *Usecase) Login(ctx context.Context, req model.LoginRequest) (model.Logi
 	const secondsPerHour = 3600
 	return model.LoginResponse{
 		AccessToken: token,
-		ExpiresIn:   u.userExpHours * secondsPerHour,
+		ExpiresIn:   s.userExpHours * secondsPerHour,
 		User:        *user,
 	}, nil
 }
 
-func (u *Usecase) ForgotPassword(ctx context.Context, req model.ForgotPasswordRequest) (model.ForgotPasswordResponse, error) {
+func (s *Service) ForgotPassword(ctx context.Context, req model.ForgotPasswordRequest) (model.ForgotPasswordResponse, error) {
 	email := strings.ToLower(strings.TrimSpace(req.Email))
 
-	user, err := u.storage.GetUserByEmail(ctx, email)
+	user, err := s.storage.GetUserByEmail(ctx, email)
 	if err != nil {
 		if err == errors.ErrNotFound {
 			return model.ForgotPasswordResponse{
@@ -118,7 +118,7 @@ func (u *Usecase) ForgotPassword(ctx context.Context, req model.ForgotPasswordRe
 	user.ResetTokenExpiresAt = &expiresAt
 	user.UpdatedAt = time.Now()
 
-	if err := u.storage.UpdateUser(ctx, user); err != nil {
+	if err := s.storage.UpdateUser(ctx, user); err != nil {
 		return model.ForgotPasswordResponse{}, err
 	}
 
@@ -128,8 +128,8 @@ func (u *Usecase) ForgotPassword(ctx context.Context, req model.ForgotPasswordRe
 	}, nil
 }
 
-func (u *Usecase) ResetPassword(ctx context.Context, req model.ResetPasswordRequest) error {
-	user, err := u.storage.GetUserByResetToken(ctx, req.ResetToken)
+func (s *Service) ResetPassword(ctx context.Context, req model.ResetPasswordRequest) error {
+	user, err := s.storage.GetUserByResetToken(ctx, req.ResetToken)
 	if err != nil {
 		if err == errors.ErrNotFound {
 			return errors.ErrInvalidToken
@@ -151,20 +151,20 @@ func (u *Usecase) ResetPassword(ctx context.Context, req model.ResetPasswordRequ
 	user.ResetTokenExpiresAt = nil
 	user.UpdatedAt = time.Now()
 
-	if err := u.storage.UpdateUser(ctx, user); err != nil {
+	if err := s.storage.UpdateUser(ctx, user); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (u *Usecase) GenerateServiceToken(ctx context.Context, req model.ServiceTokenRequest) (model.ServiceTokenResponse, error) {
+func (s *Service) GenerateServiceToken(ctx context.Context, req model.ServiceTokenRequest) (model.ServiceTokenResponse, error) {
 
 	expectedSecrets := map[string]string{
-		"sales":     u.jwtSecret + "_sales",
-		"purchase":  u.jwtSecret + "_purchase",
-		"contact":   u.jwtSecret + "_contact",
-		"inventory": u.jwtSecret + "_inventory",
+		"sales":     s.jwtSecret + "_sales",
+		"purchase":  s.jwtSecret + "_purchase",
+		"contact":   s.jwtSecret + "_contact",
+		"inventory": s.jwtSecret + "_inventory",
 	}
 
 	expectedSecret, ok := expectedSecrets[req.ServiceName]
@@ -173,7 +173,7 @@ func (u *Usecase) GenerateServiceToken(ctx context.Context, req model.ServiceTok
 	}
 
 	serviceExpHours := 1
-	token, err := jwt.GenerateServiceToken(req.ServiceName, u.jwtSecret, serviceExpHours)
+	token, err := jwt.GenerateServiceToken(req.ServiceName, s.jwtSecret, serviceExpHours)
 	if err != nil {
 		return model.ServiceTokenResponse{}, errors.ErrInternalServerError
 	}

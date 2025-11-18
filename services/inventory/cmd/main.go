@@ -8,8 +8,8 @@ import (
 	natsclient "microservice-challenge/package/nats"
 	"microservice-challenge/services/inventory/httphandler"
 	"microservice-challenge/services/inventory/router"
+	inventoryservice "microservice-challenge/services/inventory/service/inventory"
 	"microservice-challenge/services/inventory/storage/postgresql"
-	"microservice-challenge/services/inventory/usecase/inventory"
 	"net/http"
 	"os"
 	"os/signal"
@@ -79,15 +79,15 @@ func main() {
 
 	storage := postgresql.NewStorage(db)
 
-	usecase := inventory.NewUsecase(storage, natsClient, logger)
+	service := inventoryservice.NewService(storage, natsClient, logger)
 
-	if err := usecase.StartEventSubscriptions(ctx); err != nil {
+	if err := service.StartEventSubscriptions(ctx); err != nil {
 		logger.Fatal(ctx, "failed to start NATS subscriptions", zap.Error(err))
 	}
 
 	logger.Info(ctx, "NATS event subscriptions started")
 
-	handler := httphandler.NewHandler(usecase, logger)
+	handler := httphandler.NewHandler(service, logger)
 	r := router.NewRouter(handler, logger, cfg.JWT.Secret, db)
 
 	port := os.Getenv("PORT")

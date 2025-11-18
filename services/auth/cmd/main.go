@@ -7,8 +7,8 @@ import (
 	"microservice-challenge/package/log"
 	"microservice-challenge/services/auth/httphandler"
 	"microservice-challenge/services/auth/router"
+	authservice "microservice-challenge/services/auth/service/auth"
 	"microservice-challenge/services/auth/storage/postgresql"
-	"microservice-challenge/services/auth/usecase/auth"
 	"net/http"
 	"os"
 	"os/signal"
@@ -70,13 +70,13 @@ func main() {
 
 	storage := postgresql.NewStorage(db)
 
-	usecase := auth.NewUsecase(
+	service := authservice.NewService(
 		storage,
 		cfg.JWT.Secret,
 		cfg.JWT.UserExpirationHours,
 	)
 
-	handler := httphandler.NewHandler(usecase, logger)
+	handler := httphandler.NewHandler(service, logger)
 	r := router.NewRouter(handler, logger)
 
 	port := os.Getenv("PORT")

@@ -26,32 +26,68 @@ func NewBaseClient(baseURL string) *BaseClient {
 }
 
 func (c *BaseClient) DoRequest(ctx context.Context, method, path string, body interface{}, token string) (*http.Response, error) {
+	return c.DoRequestWithRetry(ctx, method, path, body, token, 3)
+}
+
+func (c *BaseClient) DoRequestWithRetry(ctx context.Context, method, path string, body interface{}, token string, maxRetries int) (*http.Response, error) {
 	var bodyReader io.Reader
+	var bodyBytes []byte
+	var err error
+
 	if body != nil {
-		jsonData, err := json.Marshal(body)
+		bodyBytes, err = json.Marshal(body)
 		if err != nil {
 			return nil, fmt.Errorf("failed to marshal request body: %w", err)
 		}
-		bodyReader = bytes.NewReader(jsonData)
 	}
 
 	url := fmt.Sprintf("%s%s", c.baseURL, path)
-	req, err := http.NewRequestWithContext(ctx, method, url, bodyReader)
-	if err != nil {
-		return nil, errors.ErrInternalServerError
+
+	var lastErr error
+	for attempt := 0; attempt < maxRetries; attempt++ {
+		if attempt > 0 {
+			// Exponential backoff: 100ms, 200ms, 400ms
+			backoff := time.Duration(attempt) * 100 * time.Millisecond
+			select {
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			case <-time.After(backoff):
+			}
+		}
+
+		if bodyBytes != nil {
+			bodyReader = bytes.NewReader(bodyBytes)
+		}
+
+		req, err := http.NewRequestWithContext(ctx, method, url, bodyReader)
+		if err != nil {
+			return nil, errors.ErrInternalServerError
+		}
+
+		req.Header.Set("Content-Type", "application/json")
+		if token != "" {
+			req.Header.Set("Authorization", "Bearer "+token)
+		}
+
+		resp, err := c.client.Do(req)
+		if err == nil {
+			// Success - but check if it's a retryable error status
+			if resp.StatusCode >= 500 && resp.StatusCode < 600 && attempt < maxRetries-1 {
+				resp.Body.Close()
+				lastErr = fmt.Errorf("server error %d, retrying", resp.StatusCode)
+				continue
+			}
+			return resp, nil
+		}
+
+		lastErr = err
+		// Don't retry on context cancellation or timeout
+		if err == context.Canceled || err == context.DeadlineExceeded {
+			return nil, err
+		}
 	}
 
-	req.Header.Set("Content-Type", "application/json")
-	if token != "" {
-		req.Header.Set("Authorization", "Bearer "+token)
-	}
-
-	resp, err := c.client.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("failed to make request: %w", err)
-	}
-
-	return resp, nil
+	return nil, fmt.Errorf("failed after %d attempts: %w", maxRetries, lastErr)
 }
 
 func (c *BaseClient) ParseResponse(resp *http.Response, target interface{}) error {

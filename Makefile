@@ -24,7 +24,12 @@ setup:
 
 swagger:
 	@echo "Generating Swagger docs..."
-	@bash generate_swagger.sh
+	@echo "Run 'swag init' in each service directory manually, or use:"
+	@echo "  cd services/auth && swag init -g cmd/main.go -o docs"
+	@echo "  cd services/contact && swag init -g cmd/main.go -o docs"
+	@echo "  cd services/inventory && swag init -g cmd/main.go -o docs"
+	@echo "  cd services/sales && swag init -g cmd/main.go -o docs"
+	@echo "  cd services/purchase && swag init -g cmd/main.go -o docs"
 
 
 build:

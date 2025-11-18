@@ -7,19 +7,29 @@ import (
 )
 
 type Item struct {
-	ID          uuid.UUID `json:"id" db:"id"`
-	Name        string    `json:"name" db:"name"`
-	Description string    `json:"description" db:"description"`
-	SKU         string    `json:"sku" db:"sku"`
-	UnitPrice   float64   `json:"unit_price" db:"unit_price"`
-	CreatedAt   time.Time `json:"created_at" db:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at" db:"updated_at"`
+	// Identifiers
+	ID  uuid.UUID `json:"id" db:"id"`
+	SKU string    `json:"sku" db:"sku"`
+
+	// Business fields
+	Name        string  `json:"name" db:"name"`
+	Description string  `json:"description" db:"description"`
+	UnitPrice   float64 `json:"unit_price" db:"unit_price"`
+
+	// Timestamps
+	CreatedAt time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
 }
 
 type Stock struct {
-	ID        uuid.UUID `json:"id" db:"id"`
-	ItemID    uuid.UUID `json:"item_id" db:"item_id"`
-	Quantity  int       `json:"quantity" db:"quantity"`
+	// Identifiers
+	ID     uuid.UUID `json:"id" db:"id"`
+	ItemID uuid.UUID `json:"item_id" db:"item_id"`
+
+	// Business fields
+	Quantity int `json:"quantity" db:"quantity"`
+
+	// Timestamps
 	CreatedAt time.Time `json:"created_at" db:"created_at"`
 	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
 }

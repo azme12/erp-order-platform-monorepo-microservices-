@@ -13,6 +13,7 @@ type Storage interface {
 	UpdateOrderStatus(ctx context.Context, id string, status model.PurchaseOrderStatus) error
 
 	CreateOrderItem(ctx context.Context, item model.PurchaseOrderItem) error
+	CreateOrderItems(ctx context.Context, items []model.PurchaseOrderItem) error
 	GetOrderItemsByOrderID(ctx context.Context, orderID string) ([]model.PurchaseOrderItem, error)
 	DeleteOrderItemsByOrderID(ctx context.Context, orderID string) error
 }
