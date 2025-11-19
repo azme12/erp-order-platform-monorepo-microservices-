@@ -34,10 +34,10 @@ func NewHandler(service *inventoryservice.Service, logger log.Logger) *Handler {
 // @Produce      json
 // @Param        limit query int false "Limit" default(10)
 // @Param        offset query int false "Offset" default(0)
-// @Success      200 {object} response.Response{data=[]model.Item}
-// @Failure      401 {object} response.Response
-// @Failure      403 {object} response.Response
-// @Failure      500 {object} response.Response
+// @Success      200 {object} response.SuccessResponse{data=[]model.Item}
+// @Failure      401 {object} response.SimpleErrorResponse
+// @Failure      403 {object} response.SimpleErrorResponse
+// @Failure      500 {object} response.SimpleErrorResponse
 // @Router       /items [get]
 // @Security     BearerAuth
 func (h *Handler) ListItems(w http.ResponseWriter, r *http.Request) {
@@ -62,10 +62,10 @@ func (h *Handler) ListItems(w http.ResponseWriter, r *http.Request) {
 // @Accept       json
 // @Produce      json
 // @Param        id path string true "Item ID"
-// @Success      200 {object} response.Response{data=model.Item}
-// @Failure      401 {object} response.Response
-// @Failure      404 {object} response.Response
-// @Failure      500 {object} response.Response
+// @Success      200 {object} response.SuccessResponse{data=model.Item}
+// @Failure      401 {object} response.SimpleErrorResponse
+// @Failure      404 {object} response.SimpleErrorResponse
+// @Failure      500 {object} response.SimpleErrorResponse
 // @Router       /items/{id} [get]
 // @Security     BearerAuth
 func (h *Handler) GetItem(w http.ResponseWriter, r *http.Request) {
@@ -89,12 +89,12 @@ func (h *Handler) GetItem(w http.ResponseWriter, r *http.Request) {
 // @Accept       json
 // @Produce      json
 // @Param        request body model.CreateItemRequest true "Item creation request"
-// @Success      201 {object} response.Response{data=model.Item}
-// @Failure      400 {object} response.Response
-// @Failure      401 {object} response.Response
-// @Failure      403 {object} response.Response
-// @Failure      409 {object} response.Response
-// @Failure      500 {object} response.Response
+// @Success      201 {object} response.SuccessResponse{data=model.Item}
+// @Failure      400 {object} response.ValidationErrorResponse
+// @Failure      401 {object} response.SimpleErrorResponse
+// @Failure      403 {object} response.SimpleErrorResponse
+// @Failure      409 {object} response.SimpleErrorResponse
+// @Failure      500 {object} response.SimpleErrorResponse
 // @Router       /items [post]
 // @Security     BearerAuth
 func (h *Handler) CreateItem(w http.ResponseWriter, r *http.Request) {
@@ -130,12 +130,12 @@ func (h *Handler) CreateItem(w http.ResponseWriter, r *http.Request) {
 // @Produce      json
 // @Param        id path string true "Item ID"
 // @Param        request body model.UpdateItemRequest true "Item update request"
-// @Success      200 {object} response.Response{data=model.Item}
-// @Failure      400 {object} response.Response
-// @Failure      401 {object} response.Response
-// @Failure      403 {object} response.Response
-// @Failure      404 {object} response.Response
-// @Failure      500 {object} response.Response
+// @Success      200 {object} response.SuccessResponse{data=model.Item}
+// @Failure      400 {object} response.ValidationErrorResponse
+// @Failure      401 {object} response.SimpleErrorResponse
+// @Failure      403 {object} response.SimpleErrorResponse
+// @Failure      404 {object} response.SimpleErrorResponse
+// @Failure      500 {object} response.SimpleErrorResponse
 // @Router       /items/{id} [put]
 // @Security     BearerAuth
 func (h *Handler) UpdateItem(w http.ResponseWriter, r *http.Request) {
@@ -171,11 +171,11 @@ func (h *Handler) UpdateItem(w http.ResponseWriter, r *http.Request) {
 // @Accept       json
 // @Produce      json
 // @Param        id path string true "Item ID"
-// @Success      200 {object} response.Response
-// @Failure      401 {object} response.Response
-// @Failure      403 {object} response.Response
-// @Failure      404 {object} response.Response
-// @Failure      500 {object} response.Response
+// @Success      200 {object} response.SuccessResponse
+// @Failure      401 {object} response.SimpleErrorResponse
+// @Failure      403 {object} response.SimpleErrorResponse
+// @Failure      404 {object} response.SimpleErrorResponse
+// @Failure      500 {object} response.SimpleErrorResponse
 // @Router       /items/{id} [delete]
 // @Security     BearerAuth
 func (h *Handler) DeleteItem(w http.ResponseWriter, r *http.Request) {
@@ -198,10 +198,10 @@ func (h *Handler) DeleteItem(w http.ResponseWriter, r *http.Request) {
 // @Accept       json
 // @Produce      json
 // @Param        item_id path string true "Item ID"
-// @Success      200 {object} response.Response{data=model.Stock}
-// @Failure      401 {object} response.Response
-// @Failure      404 {object} response.Response
-// @Failure      500 {object} response.Response
+// @Success      200 {object} response.SuccessResponse{data=model.Stock}
+// @Failure      401 {object} response.SimpleErrorResponse
+// @Failure      404 {object} response.SimpleErrorResponse
+// @Failure      500 {object} response.SimpleErrorResponse
 // @Router       /items/{item_id}/stock [get]
 // @Security     BearerAuth
 func (h *Handler) GetStock(w http.ResponseWriter, r *http.Request) {
@@ -226,12 +226,12 @@ func (h *Handler) GetStock(w http.ResponseWriter, r *http.Request) {
 // @Produce      json
 // @Param        item_id path string true "Item ID"
 // @Param        request body model.AdjustStockRequest true "Stock adjustment request"
-// @Success      200 {object} response.Response{data=model.Stock}
-// @Failure      400 {object} response.Response
-// @Failure      401 {object} response.Response
-// @Failure      403 {object} response.Response
-// @Failure      404 {object} response.Response
-// @Failure      500 {object} response.Response
+// @Success      200 {object} response.SuccessResponse{data=model.Stock}
+// @Failure      400 {object} response.ValidationErrorResponse
+// @Failure      401 {object} response.SimpleErrorResponse
+// @Failure      403 {object} response.SimpleErrorResponse
+// @Failure      404 {object} response.SimpleErrorResponse
+// @Failure      500 {object} response.SimpleErrorResponse
 // @Router       /items/{item_id}/stock [put]
 // @Security     BearerAuth
 func (h *Handler) AdjustStock(w http.ResponseWriter, r *http.Request) {

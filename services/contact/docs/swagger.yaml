@@ -1,5 +1,40 @@
-basePath: /
 definitions:
+  errors.ErrorType:
+    enum:
+    - validation
+    - not_found
+    - conflict
+    - unauthorized
+    - forbidden
+    - rate_limit
+    - internal
+    - timeout
+    - unavailable
+    - database
+    - external_service
+    - network
+    - bad_request
+    - invalid_format
+    - payload_too_large
+    - unknown
+    type: string
+    x-enum-varnames:
+    - ErrorTypeValidation
+    - ErrorTypeNotFound
+    - ErrorTypeConflict
+    - ErrorTypeUnauthorized
+    - ErrorTypeForbidden
+    - ErrorTypeRateLimit
+    - ErrorTypeInternal
+    - ErrorTypeTimeout
+    - ErrorTypeUnavailable
+    - ErrorTypeDatabase
+    - ErrorTypeExternal
+    - ErrorTypeNetwork
+    - ErrorTypeBadRequest
+    - ErrorTypeInvalidFormat
+    - ErrorTypePayloadTooLarge
+    - ErrorTypeUnknown
   model.CreateCustomerRequest:
     properties:
       address:
@@ -27,12 +62,15 @@ definitions:
       address:
         type: string
       created_at:
+        description: Timestamps
         type: string
       email:
         type: string
       id:
+        description: Identifiers
         type: string
       name:
+        description: Business fields
         type: string
       phone:
         type: string
@@ -66,56 +104,82 @@ definitions:
       address:
         type: string
       created_at:
+        description: Timestamps
         type: string
       email:
         type: string
       id:
+        description: Identifiers
         type: string
       name:
+        description: Business fields
         type: string
       phone:
         type: string
       updated_at:
         type: string
     type: object
-host: localhost:8000
+  response.FieldError:
+    properties:
+      description:
+        type: string
+      title:
+        type: string
+    type: object
+  response.SimpleErrorDetail:
+    properties:
+      message:
+        example: unauthorized
+        type: string
+      type:
+        allOf:
+        - $ref: '#/definitions/errors.ErrorType'
+        example: unauthorized
+    type: object
+  response.SimpleErrorResponse:
+    properties:
+      error:
+        $ref: '#/definitions/response.SimpleErrorDetail'
+    type: object
+  response.SuccessResponse:
+    properties:
+      data: {}
+    type: object
+  response.ValidationErrorDetail:
+    properties:
+      details:
+        items:
+          $ref: '#/definitions/response.FieldError'
+        type: array
+      message:
+        example: Validation failed
+        type: string
+      type:
+        allOf:
+        - $ref: '#/definitions/errors.ErrorType'
+        example: validation
+    type: object
+  response.ValidationErrorResponse:
+    properties:
+      error:
+        $ref: '#/definitions/response.ValidationErrorDetail'
+    type: object
 info:
-  contact:
-    email: support@example.com
-    name: API Support
-    url: http://www.example.com/support
-  description: Contact Service for managing Customers and Vendors
-  license:
-    name: Apache 2.0
-    url: http://www.apache.org/licenses/LICENSE-2.0.html
-  termsOfService: http://swagger.io/terms/
-  title: Contact Service API
-  version: "1.0"
+  contact: {}
 paths:
   /customers:
     get:
       consumes:
       - application/json
-      description: 'Get a list of customers. Supports both pagination styles: page/size
-        or limit/offset'
+      description: Get a paginated list of customers
       parameters:
-      - default: 1
-        description: Page number (1-based)
-        in: query
-        name: page
-        type: integer
       - default: 10
-        description: Page size
-        in: query
-        name: size
-        type: integer
-      - default: 10
-        description: Limit (alternative to size)
+        description: Limit
         in: query
         name: limit
         type: integer
       - default: 0
-        description: Offset (alternative to page)
+        description: Offset
         in: query
         name: offset
         type: integer
@@ -125,28 +189,37 @@ paths:
         "200":
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/model.Customer'
-            type: array
-        "400":
-          description: Bad Request
-          schema:
-            type: string
+            allOf:
+            - $ref: '#/definitions/response.SuccessResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/model.Customer'
+                  type: array
+              type: object
         "401":
           description: Unauthorized
           schema:
-            type: string
+            $ref: '#/definitions/response.SimpleErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/response.SimpleErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.SimpleErrorResponse'
       security:
       - BearerAuth: []
       summary: List customers
       tags:
-      - customers
+      - contact
     post:
       consumes:
       - application/json
       description: Create a new customer
       parameters:
-      - description: Create customer request
+      - description: Customer creation request
         in: body
         name: request
         required: true
@@ -158,67 +231,42 @@ paths:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/model.Customer'
+            allOf:
+            - $ref: '#/definitions/response.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.Customer'
+              type: object
         "400":
           description: Bad Request
           schema:
-            type: string
+            $ref: '#/definitions/response.ValidationErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            type: string
+            $ref: '#/definitions/response.SimpleErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/response.SimpleErrorResponse'
         "409":
           description: Conflict
           schema:
-            type: string
+            $ref: '#/definitions/response.SimpleErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.SimpleErrorResponse'
       security:
       - BearerAuth: []
       summary: Create customer
       tags:
-      - customers
+      - contact
   /customers/{id}:
     delete:
       consumes:
       - application/json
-      description: Delete a customer
-      parameters:
-      - description: Customer ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Customer deleted successfully
-          schema:
-            type: string
-        "400":
-          description: Bad Request
-          schema:
-            type: string
-        "401":
-          description: Unauthorized
-          schema:
-            type: string
-        "403":
-          description: Forbidden
-          schema:
-            type: string
-        "404":
-          description: Not Found
-          schema:
-            type: string
-      security:
-      - BearerAuth: []
-      summary: Delete customer
-      tags:
-      - customers
-    get:
-      consumes:
-      - application/json
-      description: Get a customer by ID
+      description: Delete a customer by ID
       parameters:
       - description: Customer ID
         in: path
@@ -231,35 +279,86 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/model.Customer'
+            $ref: '#/definitions/response.SuccessResponse'
         "400":
           description: Bad Request
           schema:
-            type: string
+            $ref: '#/definitions/response.SimpleErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            type: string
+            $ref: '#/definitions/response.SimpleErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/response.SimpleErrorResponse'
         "404":
           description: Not Found
           schema:
-            type: string
+            $ref: '#/definitions/response.SimpleErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.SimpleErrorResponse'
       security:
       - BearerAuth: []
-      summary: Get customer by ID
+      summary: Delete customer
       tags:
-      - customers
-    put:
+      - contact
+    get:
       consumes:
       - application/json
-      description: Update a customer
+      description: Get customer details by ID
       parameters:
       - description: Customer ID
         in: path
         name: id
         required: true
         type: string
-      - description: Update customer request
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.Customer'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ValidationErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.SimpleErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.SimpleErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.SimpleErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get customer by ID
+      tags:
+      - contact
+    put:
+      consumes:
+      - application/json
+      description: Update an existing customer
+      parameters:
+      - description: Customer ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Customer update request
         in: body
         name: request
         required: true
@@ -271,52 +370,50 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/model.Customer'
+            allOf:
+            - $ref: '#/definitions/response.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.Customer'
+              type: object
         "400":
           description: Bad Request
           schema:
-            type: string
+            $ref: '#/definitions/response.ValidationErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            type: string
+            $ref: '#/definitions/response.SimpleErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/response.SimpleErrorResponse'
         "404":
           description: Not Found
           schema:
-            type: string
-        "409":
-          description: Conflict
+            $ref: '#/definitions/response.SimpleErrorResponse'
+        "500":
+          description: Internal Server Error
           schema:
-            type: string
+            $ref: '#/definitions/response.SimpleErrorResponse'
       security:
       - BearerAuth: []
       summary: Update customer
       tags:
-      - customers
+      - contact
   /vendors:
     get:
       consumes:
       - application/json
-      description: 'Get a list of vendors. Supports both pagination styles: page/size
-        or limit/offset'
+      description: Get a paginated list of vendors
       parameters:
-      - default: 1
-        description: Page number (1-based)
-        in: query
-        name: page
-        type: integer
       - default: 10
-        description: Page size
-        in: query
-        name: size
-        type: integer
-      - default: 10
-        description: Limit (alternative to size)
+        description: Limit
         in: query
         name: limit
         type: integer
       - default: 0
-        description: Offset (alternative to page)
+        description: Offset
         in: query
         name: offset
         type: integer
@@ -326,28 +423,37 @@ paths:
         "200":
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/model.Vendor'
-            type: array
-        "400":
-          description: Bad Request
-          schema:
-            type: string
+            allOf:
+            - $ref: '#/definitions/response.SuccessResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/model.Vendor'
+                  type: array
+              type: object
         "401":
           description: Unauthorized
           schema:
-            type: string
+            $ref: '#/definitions/response.SimpleErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/response.SimpleErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.SimpleErrorResponse'
       security:
       - BearerAuth: []
       summary: List vendors
       tags:
-      - vendors
+      - contact
     post:
       consumes:
       - application/json
       description: Create a new vendor
       parameters:
-      - description: Create vendor request
+      - description: Vendor creation request
         in: body
         name: request
         required: true
@@ -359,67 +465,42 @@ paths:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/model.Vendor'
+            allOf:
+            - $ref: '#/definitions/response.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.Vendor'
+              type: object
         "400":
           description: Bad Request
           schema:
-            type: string
+            $ref: '#/definitions/response.ValidationErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            type: string
+            $ref: '#/definitions/response.SimpleErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/response.SimpleErrorResponse'
         "409":
           description: Conflict
           schema:
-            type: string
+            $ref: '#/definitions/response.SimpleErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.SimpleErrorResponse'
       security:
       - BearerAuth: []
       summary: Create vendor
       tags:
-      - vendors
+      - contact
   /vendors/{id}:
     delete:
       consumes:
       - application/json
-      description: Delete a vendor
-      parameters:
-      - description: Vendor ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Vendor deleted successfully
-          schema:
-            type: string
-        "400":
-          description: Bad Request
-          schema:
-            type: string
-        "401":
-          description: Unauthorized
-          schema:
-            type: string
-        "403":
-          description: Forbidden
-          schema:
-            type: string
-        "404":
-          description: Not Found
-          schema:
-            type: string
-      security:
-      - BearerAuth: []
-      summary: Delete vendor
-      tags:
-      - vendors
-    get:
-      consumes:
-      - application/json
-      description: Get a vendor by ID
+      description: Delete a vendor by ID
       parameters:
       - description: Vendor ID
         in: path
@@ -432,35 +513,86 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/model.Vendor'
+            $ref: '#/definitions/response.SuccessResponse'
         "400":
           description: Bad Request
           schema:
-            type: string
+            $ref: '#/definitions/response.SimpleErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            type: string
+            $ref: '#/definitions/response.SimpleErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/response.SimpleErrorResponse'
         "404":
           description: Not Found
           schema:
-            type: string
+            $ref: '#/definitions/response.SimpleErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.SimpleErrorResponse'
       security:
       - BearerAuth: []
-      summary: Get vendor by ID
+      summary: Delete vendor
       tags:
-      - vendors
-    put:
+      - contact
+    get:
       consumes:
       - application/json
-      description: Update a vendor
+      description: Get vendor details by ID
       parameters:
       - description: Vendor ID
         in: path
         name: id
         required: true
         type: string
-      - description: Update vendor request
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.Vendor'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ValidationErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.SimpleErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.SimpleErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.SimpleErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get vendor by ID
+      tags:
+      - contact
+    put:
+      consumes:
+      - application/json
+      description: Update an existing vendor
+      parameters:
+      - description: Vendor ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Vendor update request
         in: body
         name: request
         required: true
@@ -472,33 +604,35 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/model.Vendor'
+            allOf:
+            - $ref: '#/definitions/response.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.Vendor'
+              type: object
         "400":
           description: Bad Request
           schema:
-            type: string
+            $ref: '#/definitions/response.ValidationErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            type: string
+            $ref: '#/definitions/response.SimpleErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/response.SimpleErrorResponse'
         "404":
           description: Not Found
           schema:
-            type: string
-        "409":
-          description: Conflict
+            $ref: '#/definitions/response.SimpleErrorResponse'
+        "500":
+          description: Internal Server Error
           schema:
-            type: string
+            $ref: '#/definitions/response.SimpleErrorResponse'
       security:
       - BearerAuth: []
       summary: Update vendor
       tags:
-      - vendors
-securityDefinitions:
-  BearerAuth:
-    description: 'Type "Bearer" followed by a space and JWT token. Example: "Bearer
-      eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."'
-    in: header
-    name: Authorization
-    type: apiKey
+      - contact
 swagger: "2.0"

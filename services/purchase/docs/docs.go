@@ -9,16 +9,7 @@ const docTemplate = `{
     "info": {
         "description": "{{escape .Description}}",
         "title": "{{.Title}}",
-        "termsOfService": "http://swagger.io/terms/",
-        "contact": {
-            "name": "API Support",
-            "url": "http://www.example.com/support",
-            "email": "support@example.com"
-        },
-        "license": {
-            "name": "Apache 2.0",
-            "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
-        },
+        "contact": {},
         "version": "{{.Version}}"
     },
     "host": "{{.Host}}",
@@ -31,7 +22,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get a list of purchase orders. Supports both pagination styles: page/size or limit/offset",
+                "description": "Get a paginated list of purchase orders",
                 "consumes": [
                     "application/json"
                 ],
@@ -39,35 +30,21 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "purchase-orders"
+                    "purchase"
                 ],
                 "summary": "List purchase orders",
                 "parameters": [
                     {
                         "type": "integer",
-                        "default": 1,
-                        "description": "Page number (1-based)",
-                        "name": "page",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
                         "default": 10,
-                        "description": "Page size",
-                        "name": "size",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "default": 10,
-                        "description": "Limit (alternative to size)",
+                        "description": "Limit",
                         "name": "limit",
                         "in": "query"
                     },
                     {
                         "type": "integer",
                         "default": 0,
-                        "description": "Offset (alternative to page)",
+                        "description": "Offset",
                         "name": "offset",
                         "in": "query"
                     }
@@ -76,22 +53,40 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/model.PurchaseOrder"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "string"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.SuccessResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/model.PurchaseOrder"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/response.SimpleErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/response.SimpleErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/response.SimpleErrorResponse"
                         }
                     }
                 }
@@ -102,7 +97,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Create a new purchase order in Draft status",
+                "description": "Create a new purchase order linked to a vendor with order items",
                 "consumes": [
                     "application/json"
                 ],
@@ -110,12 +105,12 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "purchase-orders"
+                    "purchase"
                 ],
-                "summary": "Create purchase order",
+                "summary": "Create a new purchase order",
                 "parameters": [
                     {
-                        "description": "Create purchase order request",
+                        "description": "Order creation request",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -128,19 +123,43 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/model.PurchaseOrderWithItems"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.SuccessResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/model.PurchaseOrderWithItems"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/response.ValidationErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/response.SimpleErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/response.SimpleErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/response.SimpleErrorResponse"
                         }
                     }
                 }
@@ -153,7 +172,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get a purchase order by ID",
+                "description": "Get a single purchase order with its items by order ID",
                 "consumes": [
                     "application/json"
                 ],
@@ -161,7 +180,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "purchase-orders"
+                    "purchase"
                 ],
                 "summary": "Get purchase order by ID",
                 "parameters": [
@@ -177,25 +196,43 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/model.PurchaseOrderWithItems"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "string"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.SuccessResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/model.PurchaseOrderWithItems"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/response.SimpleErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/response.SimpleErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/response.SimpleErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/response.SimpleErrorResponse"
                         }
                     }
                 }
@@ -206,7 +243,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Update an existing purchase order (only if in Draft status)",
+                "description": "Update a draft purchase order's items and details",
                 "consumes": [
                     "application/json"
                 ],
@@ -214,9 +251,9 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "purchase-orders"
+                    "purchase"
                 ],
-                "summary": "Update purchase order",
+                "summary": "Update a purchase order",
                 "parameters": [
                     {
                         "type": "string",
@@ -226,7 +263,7 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "description": "Update purchase order request",
+                        "description": "Order update request",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -239,25 +276,49 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/model.PurchaseOrderWithItems"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.SuccessResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/model.PurchaseOrderWithItems"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/response.ValidationErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/response.SimpleErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/response.SimpleErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/response.SimpleErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/response.SimpleErrorResponse"
                         }
                     }
                 }
@@ -270,7 +331,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Change purchase order status from Received to Paid",
+                "description": "Mark a received purchase order as paid",
                 "consumes": [
                     "application/json"
                 ],
@@ -278,9 +339,9 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "purchase-orders"
+                    "purchase"
                 ],
-                "summary": "Pay purchase order",
+                "summary": "Pay a purchase order",
                 "parameters": [
                     {
                         "type": "string",
@@ -294,25 +355,49 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/model.PurchaseOrderWithItems"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.SuccessResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/model.PurchaseOrderWithItems"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/response.ValidationErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/response.SimpleErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/response.SimpleErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/response.SimpleErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/response.SimpleErrorResponse"
                         }
                     }
                 }
@@ -325,7 +410,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Change purchase order status from Draft to Received. Publishes NATS event.",
+                "description": "Receive a draft purchase order and publish purchase.order.received event to increase inventory stock",
                 "consumes": [
                     "application/json"
                 ],
@@ -333,9 +418,9 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "purchase-orders"
+                    "purchase"
                 ],
-                "summary": "Receive purchase order",
+                "summary": "Receive a purchase order",
                 "parameters": [
                     {
                         "type": "string",
@@ -349,25 +434,49 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/model.PurchaseOrderWithItems"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.SuccessResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/model.PurchaseOrderWithItems"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/response.ValidationErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/response.SimpleErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/response.SimpleErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/response.SimpleErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/response.SimpleErrorResponse"
                         }
                     }
                 }
@@ -375,6 +484,45 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "errors.ErrorType": {
+            "type": "string",
+            "enum": [
+                "validation",
+                "not_found",
+                "conflict",
+                "unauthorized",
+                "forbidden",
+                "rate_limit",
+                "internal",
+                "timeout",
+                "unavailable",
+                "database",
+                "external_service",
+                "network",
+                "bad_request",
+                "invalid_format",
+                "payload_too_large",
+                "unknown"
+            ],
+            "x-enum-varnames": [
+                "ErrorTypeValidation",
+                "ErrorTypeNotFound",
+                "ErrorTypeConflict",
+                "ErrorTypeUnauthorized",
+                "ErrorTypeForbidden",
+                "ErrorTypeRateLimit",
+                "ErrorTypeInternal",
+                "ErrorTypeTimeout",
+                "ErrorTypeUnavailable",
+                "ErrorTypeDatabase",
+                "ErrorTypeExternal",
+                "ErrorTypeNetwork",
+                "ErrorTypeBadRequest",
+                "ErrorTypeInvalidFormat",
+                "ErrorTypePayloadTooLarge",
+                "ErrorTypeUnknown"
+            ]
+        },
         "model.CreatePurchaseOrderItemRequest": {
             "type": "object",
             "properties": {
@@ -404,13 +552,20 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "created_at": {
+                    "description": "Timestamps",
                     "type": "string"
                 },
                 "id": {
+                    "description": "Identifiers",
                     "type": "string"
                 },
                 "status": {
-                    "$ref": "#/definitions/model.PurchaseOrderStatus"
+                    "description": "Business fields",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/model.PurchaseOrderStatus"
+                        }
+                    ]
                 },
                 "total_amount": {
                     "type": "number"
@@ -427,9 +582,11 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "created_at": {
+                    "description": "Timestamps",
                     "type": "string"
                 },
                 "id": {
+                    "description": "Identifiers",
                     "type": "string"
                 },
                 "item_id": {
@@ -439,6 +596,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "quantity": {
+                    "description": "Business fields",
                     "type": "integer"
                 },
                 "subtotal": {
@@ -469,9 +627,11 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "created_at": {
+                    "description": "Timestamps",
                     "type": "string"
                 },
                 "id": {
+                    "description": "Identifiers",
                     "type": "string"
                 },
                 "items": {
@@ -481,7 +641,12 @@ const docTemplate = `{
                     }
                 },
                 "status": {
-                    "$ref": "#/definitions/model.PurchaseOrderStatus"
+                    "description": "Business fields",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/model.PurchaseOrderStatus"
+                        }
+                    ]
                 },
                 "total_amount": {
                     "type": "number"
@@ -504,26 +669,91 @@ const docTemplate = `{
                     }
                 }
             }
-        }
-    },
-    "securityDefinitions": {
-        "BearerAuth": {
-            "description": "Type \"Bearer\" followed by a space and JWT token. Example: \"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\"",
-            "type": "apiKey",
-            "name": "Authorization",
-            "in": "header"
+        },
+        "response.FieldError": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "response.SimpleErrorDetail": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string",
+                    "example": "unauthorized"
+                },
+                "type": {
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/errors.ErrorType"
+                        }
+                    ],
+                    "example": "unauthorized"
+                }
+            }
+        },
+        "response.SimpleErrorResponse": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "$ref": "#/definitions/response.SimpleErrorDetail"
+                }
+            }
+        },
+        "response.SuccessResponse": {
+            "type": "object",
+            "properties": {
+                "data": {}
+            }
+        },
+        "response.ValidationErrorDetail": {
+            "type": "object",
+            "properties": {
+                "details": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/response.FieldError"
+                    }
+                },
+                "message": {
+                    "type": "string",
+                    "example": "Validation failed"
+                },
+                "type": {
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/errors.ErrorType"
+                        }
+                    ],
+                    "example": "validation"
+                }
+            }
+        },
+        "response.ValidationErrorResponse": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "$ref": "#/definitions/response.ValidationErrorDetail"
+                }
+            }
         }
     }
 }`
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
-	Version:          "1.0",
-	Host:             "localhost:8005",
-	BasePath:         "/",
+	Version:          "",
+	Host:             "",
+	BasePath:         "",
 	Schemes:          []string{},
-	Title:            "Purchase Service API",
-	Description:      "Purchase Service for managing Purchase Orders",
+	Title:            "",
+	Description:      "",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",

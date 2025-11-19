@@ -1,5 +1,40 @@
-basePath: /
 definitions:
+  errors.ErrorType:
+    enum:
+    - validation
+    - not_found
+    - conflict
+    - unauthorized
+    - forbidden
+    - rate_limit
+    - internal
+    - timeout
+    - unavailable
+    - database
+    - external_service
+    - network
+    - bad_request
+    - invalid_format
+    - payload_too_large
+    - unknown
+    type: string
+    x-enum-varnames:
+    - ErrorTypeValidation
+    - ErrorTypeNotFound
+    - ErrorTypeConflict
+    - ErrorTypeUnauthorized
+    - ErrorTypeForbidden
+    - ErrorTypeRateLimit
+    - ErrorTypeInternal
+    - ErrorTypeTimeout
+    - ErrorTypeUnavailable
+    - ErrorTypeDatabase
+    - ErrorTypeExternal
+    - ErrorTypeNetwork
+    - ErrorTypeBadRequest
+    - ErrorTypeInvalidFormat
+    - ErrorTypePayloadTooLarge
+    - ErrorTypeUnknown
   model.CreateOrderItemRequest:
     properties:
       item_id:
@@ -19,14 +54,17 @@ definitions:
   model.OrderItem:
     properties:
       created_at:
+        description: Timestamps
         type: string
       id:
+        description: Identifiers
         type: string
       item_id:
         type: string
       order_id:
         type: string
       quantity:
+        description: Business fields
         type: integer
       subtotal:
         type: number
@@ -48,13 +86,17 @@ definitions:
   model.SalesOrder:
     properties:
       created_at:
+        description: Timestamps
         type: string
       customer_id:
         type: string
       id:
+        description: Identifiers
         type: string
       status:
-        $ref: '#/definitions/model.OrderStatus'
+        allOf:
+        - $ref: '#/definitions/model.OrderStatus'
+        description: Business fields
       total_amount:
         type: number
       updated_at:
@@ -63,17 +105,21 @@ definitions:
   model.SalesOrderWithItems:
     properties:
       created_at:
+        description: Timestamps
         type: string
       customer_id:
         type: string
       id:
+        description: Identifiers
         type: string
       items:
         items:
           $ref: '#/definitions/model.OrderItem'
         type: array
       status:
-        $ref: '#/definitions/model.OrderStatus'
+        allOf:
+        - $ref: '#/definitions/model.OrderStatus'
+        description: Business fields
       total_amount:
         type: number
       updated_at:
@@ -86,44 +132,67 @@ definitions:
           $ref: '#/definitions/model.CreateOrderItemRequest'
         type: array
     type: object
-host: localhost:8004
+  response.FieldError:
+    properties:
+      description:
+        type: string
+      title:
+        type: string
+    type: object
+  response.SimpleErrorDetail:
+    properties:
+      message:
+        example: unauthorized
+        type: string
+      type:
+        allOf:
+        - $ref: '#/definitions/errors.ErrorType'
+        example: unauthorized
+    type: object
+  response.SimpleErrorResponse:
+    properties:
+      error:
+        $ref: '#/definitions/response.SimpleErrorDetail'
+    type: object
+  response.SuccessResponse:
+    properties:
+      data: {}
+    type: object
+  response.ValidationErrorDetail:
+    properties:
+      details:
+        items:
+          $ref: '#/definitions/response.FieldError'
+        type: array
+      message:
+        example: Validation failed
+        type: string
+      type:
+        allOf:
+        - $ref: '#/definitions/errors.ErrorType'
+        example: validation
+    type: object
+  response.ValidationErrorResponse:
+    properties:
+      error:
+        $ref: '#/definitions/response.ValidationErrorDetail'
+    type: object
 info:
-  contact:
-    email: support@example.com
-    name: API Support
-    url: http://www.example.com/support
-  description: Sales Service for managing Sales Orders
-  license:
-    name: Apache 2.0
-    url: http://www.apache.org/licenses/LICENSE-2.0.html
-  termsOfService: http://swagger.io/terms/
-  title: Sales Service API
-  version: "1.0"
+  contact: {}
 paths:
   /orders:
     get:
       consumes:
       - application/json
-      description: 'Get a list of sales orders. Supports both pagination styles: page/size
-        or limit/offset'
+      description: Get a paginated list of sales orders
       parameters:
-      - default: 1
-        description: Page number (1-based)
-        in: query
-        name: page
-        type: integer
       - default: 10
-        description: Page size
-        in: query
-        name: size
-        type: integer
-      - default: 10
-        description: Limit (alternative to size)
+        description: Limit
         in: query
         name: limit
         type: integer
       - default: 0
-        description: Offset (alternative to page)
+        description: Offset
         in: query
         name: offset
         type: integer
@@ -133,28 +202,37 @@ paths:
         "200":
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/model.SalesOrder'
-            type: array
-        "400":
-          description: Bad Request
-          schema:
-            type: string
+            allOf:
+            - $ref: '#/definitions/response.SuccessResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/model.SalesOrder'
+                  type: array
+              type: object
         "401":
           description: Unauthorized
           schema:
-            type: string
+            $ref: '#/definitions/response.SimpleErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/response.SimpleErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.SimpleErrorResponse'
       security:
       - BearerAuth: []
-      summary: List orders
+      summary: List sales orders
       tags:
-      - orders
+      - sales
     post:
       consumes:
       - application/json
-      description: Create a new draft sales order
+      description: Create a new sales order linked to a customer with order items
       parameters:
-      - description: Create order request
+      - description: Order creation request
         in: body
         name: request
         required: true
@@ -166,25 +244,38 @@ paths:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/model.SalesOrderWithItems'
+            allOf:
+            - $ref: '#/definitions/response.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.SalesOrderWithItems'
+              type: object
         "400":
           description: Bad Request
           schema:
-            type: string
+            $ref: '#/definitions/response.ValidationErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            type: string
+            $ref: '#/definitions/response.SimpleErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/response.SimpleErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.SimpleErrorResponse'
       security:
       - BearerAuth: []
-      summary: Create order
+      summary: Create a new sales order
       tags:
-      - orders
+      - sales
   /orders/{id}:
     get:
       consumes:
       - application/json
-      description: Get a sales order by ID with items
+      description: Get a single sales order with its items by order ID
       parameters:
       - description: Order ID
         in: path
@@ -197,35 +288,44 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/model.SalesOrderWithItems'
-        "400":
-          description: Bad Request
-          schema:
-            type: string
+            allOf:
+            - $ref: '#/definitions/response.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.SalesOrderWithItems'
+              type: object
         "401":
           description: Unauthorized
           schema:
-            type: string
+            $ref: '#/definitions/response.SimpleErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/response.SimpleErrorResponse'
         "404":
           description: Not Found
           schema:
-            type: string
+            $ref: '#/definitions/response.SimpleErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.SimpleErrorResponse'
       security:
       - BearerAuth: []
-      summary: Get order by ID
+      summary: Get sales order by ID
       tags:
-      - orders
+      - sales
     put:
       consumes:
       - application/json
-      description: Update a draft sales order
+      description: Update a draft sales order's items and details
       parameters:
       - description: Order ID
         in: path
         name: id
         required: true
         type: string
-      - description: Update order request
+      - description: Order update request
         in: body
         name: request
         required: true
@@ -237,29 +337,43 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/model.SalesOrderWithItems'
+            allOf:
+            - $ref: '#/definitions/response.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.SalesOrderWithItems'
+              type: object
         "400":
           description: Bad Request
           schema:
-            type: string
+            $ref: '#/definitions/response.ValidationErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            type: string
+            $ref: '#/definitions/response.SimpleErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/response.SimpleErrorResponse'
         "404":
           description: Not Found
           schema:
-            type: string
+            $ref: '#/definitions/response.SimpleErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.SimpleErrorResponse'
       security:
       - BearerAuth: []
-      summary: Update order
+      summary: Update a sales order
       tags:
-      - orders
+      - sales
   /orders/{id}/confirm:
     post:
       consumes:
       - application/json
-      description: Confirm a draft sales order and publish event
+      description: Confirm a draft sales order and publish sales.order.confirmed event
+        to decrease inventory stock
       parameters:
       - description: Order ID
         in: path
@@ -272,33 +386,42 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/model.SalesOrderWithItems'
+            allOf:
+            - $ref: '#/definitions/response.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.SalesOrderWithItems'
+              type: object
         "400":
           description: Bad Request
           schema:
-            type: string
+            $ref: '#/definitions/response.ValidationErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            type: string
+            $ref: '#/definitions/response.SimpleErrorResponse'
         "403":
           description: Forbidden
           schema:
-            type: string
+            $ref: '#/definitions/response.SimpleErrorResponse'
         "404":
           description: Not Found
           schema:
-            type: string
+            $ref: '#/definitions/response.SimpleErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.SimpleErrorResponse'
       security:
       - BearerAuth: []
-      summary: Confirm order
+      summary: Confirm a sales order
       tags:
-      - orders
+      - sales
   /orders/{id}/pay:
     post:
       consumes:
       - application/json
-      description: Mark a confirmed order as paid
+      description: Mark a confirmed sales order as paid
       parameters:
       - description: Order ID
         in: path
@@ -311,33 +434,35 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/model.SalesOrderWithItems'
+            allOf:
+            - $ref: '#/definitions/response.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.SalesOrderWithItems'
+              type: object
         "400":
           description: Bad Request
           schema:
-            type: string
+            $ref: '#/definitions/response.ValidationErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            type: string
+            $ref: '#/definitions/response.SimpleErrorResponse'
         "403":
           description: Forbidden
           schema:
-            type: string
+            $ref: '#/definitions/response.SimpleErrorResponse'
         "404":
           description: Not Found
           schema:
-            type: string
+            $ref: '#/definitions/response.SimpleErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.SimpleErrorResponse'
       security:
       - BearerAuth: []
-      summary: Pay order
+      summary: Pay a sales order
       tags:
-      - orders
-securityDefinitions:
-  BearerAuth:
-    description: 'Type "Bearer" followed by a space and JWT token. Example: "Bearer
-      eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."'
-    in: header
-    name: Authorization
-    type: apiKey
+      - sales
 swagger: "2.0"

@@ -34,10 +34,10 @@ func NewHandler(service *contactservice.Service, logger log.Logger) *Handler {
 // @Produce      json
 // @Param        limit query int false "Limit" default(10)
 // @Param        offset query int false "Offset" default(0)
-// @Success      200 {object} response.Response{data=[]model.Customer}
-// @Failure      401 {object} response.Response
-// @Failure      403 {object} response.Response
-// @Failure      500 {object} response.Response
+// @Success      200 {object} response.SuccessResponse{data=[]model.Customer}
+// @Failure      401 {object} response.SimpleErrorResponse
+// @Failure      403 {object} response.SimpleErrorResponse
+// @Failure      500 {object} response.SimpleErrorResponse
 // @Router       /customers [get]
 // @Security     BearerAuth
 func (h *Handler) ListCustomers(w http.ResponseWriter, r *http.Request) {
@@ -62,11 +62,11 @@ func (h *Handler) ListCustomers(w http.ResponseWriter, r *http.Request) {
 // @Accept       json
 // @Produce      json
 // @Param        id path string true "Customer ID"
-// @Success      200 {object} response.Response{data=model.Customer}
-// @Failure      400 {object} response.Response
-// @Failure      401 {object} response.Response
-// @Failure      404 {object} response.Response
-// @Failure      500 {object} response.Response
+// @Success      200 {object} response.SuccessResponse{data=model.Customer}
+// @Failure      400 {object} response.ValidationErrorResponse
+// @Failure      401 {object} response.SimpleErrorResponse
+// @Failure      404 {object} response.SimpleErrorResponse
+// @Failure      500 {object} response.SimpleErrorResponse
 // @Router       /customers/{id} [get]
 // @Security     BearerAuth
 func (h *Handler) GetCustomer(w http.ResponseWriter, r *http.Request) {
@@ -90,12 +90,12 @@ func (h *Handler) GetCustomer(w http.ResponseWriter, r *http.Request) {
 // @Accept       json
 // @Produce      json
 // @Param        request body model.CreateCustomerRequest true "Customer creation request"
-// @Success      201 {object} response.Response{data=model.Customer}
-// @Failure      400 {object} response.Response
-// @Failure      401 {object} response.Response
-// @Failure      403 {object} response.Response
-// @Failure      409 {object} response.Response
-// @Failure      500 {object} response.Response
+// @Success      201 {object} response.SuccessResponse{data=model.Customer}
+// @Failure      400 {object} response.ValidationErrorResponse
+// @Failure      401 {object} response.SimpleErrorResponse
+// @Failure      403 {object} response.SimpleErrorResponse
+// @Failure      409 {object} response.SimpleErrorResponse
+// @Failure      500 {object} response.SimpleErrorResponse
 // @Router       /customers [post]
 // @Security     BearerAuth
 func (h *Handler) CreateCustomer(w http.ResponseWriter, r *http.Request) {
@@ -131,12 +131,12 @@ func (h *Handler) CreateCustomer(w http.ResponseWriter, r *http.Request) {
 // @Produce      json
 // @Param        id path string true "Customer ID"
 // @Param        request body model.UpdateCustomerRequest true "Customer update request"
-// @Success      200 {object} response.Response{data=model.Customer}
-// @Failure      400 {object} response.Response
-// @Failure      401 {object} response.Response
-// @Failure      403 {object} response.Response
-// @Failure      404 {object} response.Response
-// @Failure      500 {object} response.Response
+// @Success      200 {object} response.SuccessResponse{data=model.Customer}
+// @Failure      400 {object} response.ValidationErrorResponse
+// @Failure      401 {object} response.SimpleErrorResponse
+// @Failure      403 {object} response.SimpleErrorResponse
+// @Failure      404 {object} response.SimpleErrorResponse
+// @Failure      500 {object} response.SimpleErrorResponse
 // @Router       /customers/{id} [put]
 // @Security     BearerAuth
 func (h *Handler) UpdateCustomer(w http.ResponseWriter, r *http.Request) {
@@ -172,12 +172,12 @@ func (h *Handler) UpdateCustomer(w http.ResponseWriter, r *http.Request) {
 // @Accept       json
 // @Produce      json
 // @Param        id path string true "Customer ID"
-// @Success      200 {object} response.Response
-// @Failure      400 {object} response.Response
-// @Failure      401 {object} response.Response
-// @Failure      403 {object} response.Response
-// @Failure      404 {object} response.Response
-// @Failure      500 {object} response.Response
+// @Success      200 {object} response.SuccessResponse
+// @Failure      400 {object} response.SimpleErrorResponse
+// @Failure      401 {object} response.SimpleErrorResponse
+// @Failure      403 {object} response.SimpleErrorResponse
+// @Failure      404 {object} response.SimpleErrorResponse
+// @Failure      500 {object} response.SimpleErrorResponse
 // @Router       /customers/{id} [delete]
 // @Security     BearerAuth
 func (h *Handler) DeleteCustomer(w http.ResponseWriter, r *http.Request) {
@@ -201,10 +201,10 @@ func (h *Handler) DeleteCustomer(w http.ResponseWriter, r *http.Request) {
 // @Produce      json
 // @Param        limit query int false "Limit" default(10)
 // @Param        offset query int false "Offset" default(0)
-// @Success      200 {object} response.Response{data=[]model.Vendor}
-// @Failure      401 {object} response.Response
-// @Failure      403 {object} response.Response
-// @Failure      500 {object} response.Response
+// @Success      200 {object} response.SuccessResponse{data=[]model.Vendor}
+// @Failure      401 {object} response.SimpleErrorResponse
+// @Failure      403 {object} response.SimpleErrorResponse
+// @Failure      500 {object} response.SimpleErrorResponse
 // @Router       /vendors [get]
 // @Security     BearerAuth
 func (h *Handler) ListVendors(w http.ResponseWriter, r *http.Request) {
@@ -229,11 +229,11 @@ func (h *Handler) ListVendors(w http.ResponseWriter, r *http.Request) {
 // @Accept       json
 // @Produce      json
 // @Param        id path string true "Vendor ID"
-// @Success      200 {object} response.Response{data=model.Vendor}
-// @Failure      400 {object} response.Response
-// @Failure      401 {object} response.Response
-// @Failure      404 {object} response.Response
-// @Failure      500 {object} response.Response
+// @Success      200 {object} response.SuccessResponse{data=model.Vendor}
+// @Failure      400 {object} response.ValidationErrorResponse
+// @Failure      401 {object} response.SimpleErrorResponse
+// @Failure      404 {object} response.SimpleErrorResponse
+// @Failure      500 {object} response.SimpleErrorResponse
 // @Router       /vendors/{id} [get]
 // @Security     BearerAuth
 func (h *Handler) GetVendor(w http.ResponseWriter, r *http.Request) {
@@ -257,12 +257,12 @@ func (h *Handler) GetVendor(w http.ResponseWriter, r *http.Request) {
 // @Accept       json
 // @Produce      json
 // @Param        request body model.CreateVendorRequest true "Vendor creation request"
-// @Success      201 {object} response.Response{data=model.Vendor}
-// @Failure      400 {object} response.Response
-// @Failure      401 {object} response.Response
-// @Failure      403 {object} response.Response
-// @Failure      409 {object} response.Response
-// @Failure      500 {object} response.Response
+// @Success      201 {object} response.SuccessResponse{data=model.Vendor}
+// @Failure      400 {object} response.ValidationErrorResponse
+// @Failure      401 {object} response.SimpleErrorResponse
+// @Failure      403 {object} response.SimpleErrorResponse
+// @Failure      409 {object} response.SimpleErrorResponse
+// @Failure      500 {object} response.SimpleErrorResponse
 // @Router       /vendors [post]
 // @Security     BearerAuth
 func (h *Handler) CreateVendor(w http.ResponseWriter, r *http.Request) {
@@ -298,12 +298,12 @@ func (h *Handler) CreateVendor(w http.ResponseWriter, r *http.Request) {
 // @Produce      json
 // @Param        id path string true "Vendor ID"
 // @Param        request body model.UpdateVendorRequest true "Vendor update request"
-// @Success      200 {object} response.Response{data=model.Vendor}
-// @Failure      400 {object} response.Response
-// @Failure      401 {object} response.Response
-// @Failure      403 {object} response.Response
-// @Failure      404 {object} response.Response
-// @Failure      500 {object} response.Response
+// @Success      200 {object} response.SuccessResponse{data=model.Vendor}
+// @Failure      400 {object} response.ValidationErrorResponse
+// @Failure      401 {object} response.SimpleErrorResponse
+// @Failure      403 {object} response.SimpleErrorResponse
+// @Failure      404 {object} response.SimpleErrorResponse
+// @Failure      500 {object} response.SimpleErrorResponse
 // @Router       /vendors/{id} [put]
 // @Security     BearerAuth
 func (h *Handler) UpdateVendor(w http.ResponseWriter, r *http.Request) {
@@ -339,12 +339,12 @@ func (h *Handler) UpdateVendor(w http.ResponseWriter, r *http.Request) {
 // @Accept       json
 // @Produce      json
 // @Param        id path string true "Vendor ID"
-// @Success      200 {object} response.Response
-// @Failure      400 {object} response.Response
-// @Failure      401 {object} response.Response
-// @Failure      403 {object} response.Response
-// @Failure      404 {object} response.Response
-// @Failure      500 {object} response.Response
+// @Success      200 {object} response.SuccessResponse
+// @Failure      400 {object} response.SimpleErrorResponse
+// @Failure      401 {object} response.SimpleErrorResponse
+// @Failure      403 {object} response.SimpleErrorResponse
+// @Failure      404 {object} response.SimpleErrorResponse
+// @Failure      500 {object} response.SimpleErrorResponse
 // @Router       /vendors/{id} [delete]
 // @Security     BearerAuth
 func (h *Handler) DeleteVendor(w http.ResponseWriter, r *http.Request) {

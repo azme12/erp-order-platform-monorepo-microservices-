@@ -1,5 +1,40 @@
-basePath: /
 definitions:
+  errors.ErrorType:
+    enum:
+    - validation
+    - not_found
+    - conflict
+    - unauthorized
+    - forbidden
+    - rate_limit
+    - internal
+    - timeout
+    - unavailable
+    - database
+    - external_service
+    - network
+    - bad_request
+    - invalid_format
+    - payload_too_large
+    - unknown
+    type: string
+    x-enum-varnames:
+    - ErrorTypeValidation
+    - ErrorTypeNotFound
+    - ErrorTypeConflict
+    - ErrorTypeUnauthorized
+    - ErrorTypeForbidden
+    - ErrorTypeRateLimit
+    - ErrorTypeInternal
+    - ErrorTypeTimeout
+    - ErrorTypeUnavailable
+    - ErrorTypeDatabase
+    - ErrorTypeExternal
+    - ErrorTypeNetwork
+    - ErrorTypeBadRequest
+    - ErrorTypeInvalidFormat
+    - ErrorTypePayloadTooLarge
+    - ErrorTypeUnknown
   model.ForgotPasswordRequest:
     properties:
       email:
@@ -81,29 +116,65 @@ definitions:
   model.User:
     properties:
       created_at:
+        description: Timestamps
         type: string
       email:
         type: string
       id:
+        description: Identifiers
         type: string
       role:
         type: string
       updated_at:
         type: string
     type: object
-host: localhost:8000
+  response.FieldError:
+    properties:
+      description:
+        type: string
+      title:
+        type: string
+    type: object
+  response.SimpleErrorDetail:
+    properties:
+      message:
+        example: unauthorized
+        type: string
+      type:
+        allOf:
+        - $ref: '#/definitions/errors.ErrorType'
+        example: unauthorized
+    type: object
+  response.SimpleErrorResponse:
+    properties:
+      error:
+        $ref: '#/definitions/response.SimpleErrorDetail'
+    type: object
+  response.SuccessResponse:
+    properties:
+      data: {}
+    type: object
+  response.ValidationErrorDetail:
+    properties:
+      details:
+        items:
+          $ref: '#/definitions/response.FieldError'
+        type: array
+      message:
+        example: Validation failed
+        type: string
+      type:
+        allOf:
+        - $ref: '#/definitions/errors.ErrorType'
+        example: validation
+    type: object
+  response.ValidationErrorResponse:
+    properties:
+      error:
+        $ref: '#/definitions/response.ValidationErrorDetail'
+    type: object
 info:
-  contact:
-    email: support@example.com
-    name: API Support
-    url: http://www.example.com/support
-  description: Authentication and Authorization Service for Microservices Challenge
-  license:
-    name: Apache 2.0
-    url: http://www.apache.org/licenses/LICENSE-2.0.html
-  termsOfService: http://swagger.io/terms/
-  title: Auth Service API
-  version: "1.0"
+  contact: {}
 paths:
   /forgot-password:
     post:
@@ -123,19 +194,32 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/model.ForgotPasswordResponse'
+            allOf:
+            - $ref: '#/definitions/response.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.ForgotPasswordResponse'
+              type: object
         "400":
           description: Bad Request
           schema:
-            type: string
-      summary: Forgot password
+            $ref: '#/definitions/response.ValidationErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.SimpleErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.SimpleErrorResponse'
+      summary: Request password reset
       tags:
       - auth
   /login:
     post:
       consumes:
       - application/json
-      description: Authenticate user and return JWT token
+      description: Authenticate user and return access token
       parameters:
       - description: Login request
         in: body
@@ -149,15 +233,24 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/model.LoginResponse'
+            allOf:
+            - $ref: '#/definitions/response.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.LoginResponse'
+              type: object
         "400":
           description: Bad Request
           schema:
-            type: string
+            $ref: '#/definitions/response.ValidationErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            type: string
+            $ref: '#/definitions/response.SimpleErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.SimpleErrorResponse'
       summary: Login user
       tags:
       - auth
@@ -179,15 +272,24 @@ paths:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/model.User'
+            allOf:
+            - $ref: '#/definitions/response.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.User'
+              type: object
         "400":
           description: Bad Request
           schema:
-            type: string
+            $ref: '#/definitions/response.ValidationErrorResponse'
         "409":
           description: Conflict
           schema:
-            type: string
+            $ref: '#/definitions/response.SimpleErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.SimpleErrorResponse'
       summary: Register a new user
       tags:
       - auth
@@ -207,17 +309,21 @@ paths:
       - application/json
       responses:
         "200":
-          description: Password reset successfully
+          description: OK
           schema:
-            type: string
+            $ref: '#/definitions/response.SuccessResponse'
         "400":
           description: Bad Request
           schema:
-            type: string
+            $ref: '#/definitions/response.ValidationErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            type: string
+            $ref: '#/definitions/response.SimpleErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.SimpleErrorResponse'
       summary: Reset password
       tags:
       - auth
@@ -225,7 +331,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: Generate JWT token for service-to-service communication
+      description: Generate a JWT token for inter-service communication
       parameters:
       - description: Service token request
         in: body
@@ -239,23 +345,25 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/model.ServiceTokenResponse'
+            allOf:
+            - $ref: '#/definitions/response.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.ServiceTokenResponse'
+              type: object
         "400":
           description: Bad Request
           schema:
-            type: string
+            $ref: '#/definitions/response.ValidationErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            type: string
-      summary: Generate inter-service token
+            $ref: '#/definitions/response.SimpleErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.SimpleErrorResponse'
+      summary: Generate service token
       tags:
       - auth
-securityDefinitions:
-  BearerAuth:
-    description: 'Type "Bearer" followed by a space and JWT token. Example: "Bearer
-      eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."'
-    in: header
-    name: Authorization
-    type: apiKey
 swagger: "2.0"

@@ -1,5 +1,40 @@
-basePath: /
 definitions:
+  errors.ErrorType:
+    enum:
+    - validation
+    - not_found
+    - conflict
+    - unauthorized
+    - forbidden
+    - rate_limit
+    - internal
+    - timeout
+    - unavailable
+    - database
+    - external_service
+    - network
+    - bad_request
+    - invalid_format
+    - payload_too_large
+    - unknown
+    type: string
+    x-enum-varnames:
+    - ErrorTypeValidation
+    - ErrorTypeNotFound
+    - ErrorTypeConflict
+    - ErrorTypeUnauthorized
+    - ErrorTypeForbidden
+    - ErrorTypeRateLimit
+    - ErrorTypeInternal
+    - ErrorTypeTimeout
+    - ErrorTypeUnavailable
+    - ErrorTypeDatabase
+    - ErrorTypeExternal
+    - ErrorTypeNetwork
+    - ErrorTypeBadRequest
+    - ErrorTypeInvalidFormat
+    - ErrorTypePayloadTooLarge
+    - ErrorTypeUnknown
   model.AdjustStockRequest:
     properties:
       quantity:
@@ -19,12 +54,15 @@ definitions:
   model.Item:
     properties:
       created_at:
+        description: Timestamps
         type: string
       description:
         type: string
       id:
+        description: Identifiers
         type: string
       name:
+        description: Business fields
         type: string
       sku:
         type: string
@@ -36,12 +74,15 @@ definitions:
   model.Stock:
     properties:
       created_at:
+        description: Timestamps
         type: string
       id:
+        description: Identifiers
         type: string
       item_id:
         type: string
       quantity:
+        description: Business fields
         type: integer
       updated_at:
         type: string
@@ -57,44 +98,67 @@ definitions:
       unit_price:
         type: number
     type: object
-host: localhost:8003
+  response.FieldError:
+    properties:
+      description:
+        type: string
+      title:
+        type: string
+    type: object
+  response.SimpleErrorDetail:
+    properties:
+      message:
+        example: unauthorized
+        type: string
+      type:
+        allOf:
+        - $ref: '#/definitions/errors.ErrorType'
+        example: unauthorized
+    type: object
+  response.SimpleErrorResponse:
+    properties:
+      error:
+        $ref: '#/definitions/response.SimpleErrorDetail'
+    type: object
+  response.SuccessResponse:
+    properties:
+      data: {}
+    type: object
+  response.ValidationErrorDetail:
+    properties:
+      details:
+        items:
+          $ref: '#/definitions/response.FieldError'
+        type: array
+      message:
+        example: Validation failed
+        type: string
+      type:
+        allOf:
+        - $ref: '#/definitions/errors.ErrorType'
+        example: validation
+    type: object
+  response.ValidationErrorResponse:
+    properties:
+      error:
+        $ref: '#/definitions/response.ValidationErrorDetail'
+    type: object
 info:
-  contact:
-    email: support@example.com
-    name: API Support
-    url: http://www.example.com/support
-  description: Inventory Service for managing Items and Stock
-  license:
-    name: Apache 2.0
-    url: http://www.apache.org/licenses/LICENSE-2.0.html
-  termsOfService: http://swagger.io/terms/
-  title: Inventory Service API
-  version: "1.0"
+  contact: {}
 paths:
   /items:
     get:
       consumes:
       - application/json
-      description: 'Get a list of items. Supports both pagination styles: page/size
-        or limit/offset'
+      description: Get a paginated list of items
       parameters:
-      - default: 1
-        description: Page number (1-based)
-        in: query
-        name: page
-        type: integer
       - default: 10
-        description: Page size
-        in: query
-        name: size
-        type: integer
-      - default: 10
-        description: Limit (alternative to size)
+        description: Limit
         in: query
         name: limit
         type: integer
       - default: 0
-        description: Offset (alternative to page)
+        description: Offset
         in: query
         name: offset
         type: integer
@@ -104,28 +168,37 @@ paths:
         "200":
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/model.Item'
-            type: array
-        "400":
-          description: Bad Request
-          schema:
-            type: string
+            allOf:
+            - $ref: '#/definitions/response.SuccessResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/model.Item'
+                  type: array
+              type: object
         "401":
           description: Unauthorized
           schema:
-            type: string
+            $ref: '#/definitions/response.SimpleErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/response.SimpleErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.SimpleErrorResponse'
       security:
       - BearerAuth: []
       summary: List items
       tags:
-      - items
+      - inventory
     post:
       consumes:
       - application/json
-      description: Create a new item
+      description: Create a new item with name, description, SKU, and unit price
       parameters:
-      - description: Create item request
+      - description: Item creation request
         in: body
         name: request
         required: true
@@ -137,67 +210,42 @@ paths:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/model.Item'
+            allOf:
+            - $ref: '#/definitions/response.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.Item'
+              type: object
         "400":
           description: Bad Request
           schema:
-            type: string
+            $ref: '#/definitions/response.ValidationErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            type: string
+            $ref: '#/definitions/response.SimpleErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/response.SimpleErrorResponse'
         "409":
           description: Conflict
           schema:
-            type: string
+            $ref: '#/definitions/response.SimpleErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.SimpleErrorResponse'
       security:
       - BearerAuth: []
-      summary: Create item
+      summary: Create a new item
       tags:
-      - items
+      - inventory
   /items/{id}:
     delete:
       consumes:
       - application/json
-      description: Delete an item
-      parameters:
-      - description: Item ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Item deleted successfully
-          schema:
-            type: string
-        "400":
-          description: Bad Request
-          schema:
-            type: string
-        "401":
-          description: Unauthorized
-          schema:
-            type: string
-        "403":
-          description: Forbidden
-          schema:
-            type: string
-        "404":
-          description: Not Found
-          schema:
-            type: string
-      security:
-      - BearerAuth: []
-      summary: Delete item
-      tags:
-      - items
-    get:
-      consumes:
-      - application/json
-      description: Get an item by ID
+      description: Delete an item by its ID
       parameters:
       - description: Item ID
         in: path
@@ -210,35 +258,78 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/model.Item'
-        "400":
-          description: Bad Request
-          schema:
-            type: string
+            $ref: '#/definitions/response.SuccessResponse'
         "401":
           description: Unauthorized
           schema:
-            type: string
+            $ref: '#/definitions/response.SimpleErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/response.SimpleErrorResponse'
         "404":
           description: Not Found
           schema:
-            type: string
+            $ref: '#/definitions/response.SimpleErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.SimpleErrorResponse'
       security:
       - BearerAuth: []
-      summary: Get item by ID
+      summary: Delete an item
       tags:
-      - items
-    put:
+      - inventory
+    get:
       consumes:
       - application/json
-      description: Update an item
+      description: Get a single item by its ID
       parameters:
       - description: Item ID
         in: path
         name: id
         required: true
         type: string
-      - description: Update item request
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.Item'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.SimpleErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.SimpleErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.SimpleErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get item by ID
+      tags:
+      - inventory
+    put:
+      consumes:
+      - application/json
+      description: Update an existing item's details
+      parameters:
+      - description: Item ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Item update request
         in: body
         name: request
         required: true
@@ -250,33 +341,42 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/model.Item'
+            allOf:
+            - $ref: '#/definitions/response.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.Item'
+              type: object
         "400":
           description: Bad Request
           schema:
-            type: string
+            $ref: '#/definitions/response.ValidationErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            type: string
+            $ref: '#/definitions/response.SimpleErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/response.SimpleErrorResponse'
         "404":
           description: Not Found
           schema:
-            type: string
-        "409":
-          description: Conflict
+            $ref: '#/definitions/response.SimpleErrorResponse'
+        "500":
+          description: Internal Server Error
           schema:
-            type: string
+            $ref: '#/definitions/response.SimpleErrorResponse'
       security:
       - BearerAuth: []
-      summary: Update item
+      summary: Update an item
       tags:
-      - items
+      - inventory
   /items/{item_id}/stock:
     get:
       consumes:
       - application/json
-      description: Get stock information for an item
+      description: Get the current stock quantity for a specific item
       parameters:
       - description: Item ID
         in: path
@@ -289,36 +389,41 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/model.Stock'
-        "400":
-          description: Bad Request
-          schema:
-            type: string
+            allOf:
+            - $ref: '#/definitions/response.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.Stock'
+              type: object
         "401":
           description: Unauthorized
           schema:
-            type: string
+            $ref: '#/definitions/response.SimpleErrorResponse'
         "404":
           description: Not Found
           schema:
-            type: string
+            $ref: '#/definitions/response.SimpleErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.SimpleErrorResponse'
       security:
       - BearerAuth: []
       summary: Get stock by item ID
       tags:
-      - stock
+      - inventory
     put:
       consumes:
       - application/json
-      description: Adjust stock quantity for an item (positive to increase, negative
-        to decrease)
+      description: Adjust the stock quantity for a specific item (positive to increase,
+        negative to decrease)
       parameters:
       - description: Item ID
         in: path
         name: item_id
         required: true
         type: string
-      - description: Adjust stock request
+      - description: Stock adjustment request
         in: body
         name: request
         required: true
@@ -330,29 +435,35 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/model.Stock'
+            allOf:
+            - $ref: '#/definitions/response.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.Stock'
+              type: object
         "400":
           description: Bad Request
           schema:
-            type: string
+            $ref: '#/definitions/response.ValidationErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            type: string
+            $ref: '#/definitions/response.SimpleErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/response.SimpleErrorResponse'
         "404":
           description: Not Found
           schema:
-            type: string
+            $ref: '#/definitions/response.SimpleErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.SimpleErrorResponse'
       security:
       - BearerAuth: []
-      summary: Adjust stock
+      summary: Adjust stock quantity
       tags:
-      - stock
-securityDefinitions:
-  BearerAuth:
-    description: 'Type "Bearer" followed by a space and JWT token. Example: "Bearer
-      eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."'
-    in: header
-    name: Authorization
-    type: apiKey
+      - inventory
 swagger: "2.0"

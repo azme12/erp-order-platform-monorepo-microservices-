@@ -1,5 +1,40 @@
-basePath: /
 definitions:
+  errors.ErrorType:
+    enum:
+    - validation
+    - not_found
+    - conflict
+    - unauthorized
+    - forbidden
+    - rate_limit
+    - internal
+    - timeout
+    - unavailable
+    - database
+    - external_service
+    - network
+    - bad_request
+    - invalid_format
+    - payload_too_large
+    - unknown
+    type: string
+    x-enum-varnames:
+    - ErrorTypeValidation
+    - ErrorTypeNotFound
+    - ErrorTypeConflict
+    - ErrorTypeUnauthorized
+    - ErrorTypeForbidden
+    - ErrorTypeRateLimit
+    - ErrorTypeInternal
+    - ErrorTypeTimeout
+    - ErrorTypeUnavailable
+    - ErrorTypeDatabase
+    - ErrorTypeExternal
+    - ErrorTypeNetwork
+    - ErrorTypeBadRequest
+    - ErrorTypeInvalidFormat
+    - ErrorTypePayloadTooLarge
+    - ErrorTypeUnknown
   model.CreatePurchaseOrderItemRequest:
     properties:
       item_id:
@@ -19,11 +54,15 @@ definitions:
   model.PurchaseOrder:
     properties:
       created_at:
+        description: Timestamps
         type: string
       id:
+        description: Identifiers
         type: string
       status:
-        $ref: '#/definitions/model.PurchaseOrderStatus'
+        allOf:
+        - $ref: '#/definitions/model.PurchaseOrderStatus'
+        description: Business fields
       total_amount:
         type: number
       updated_at:
@@ -34,14 +73,17 @@ definitions:
   model.PurchaseOrderItem:
     properties:
       created_at:
+        description: Timestamps
         type: string
       id:
+        description: Identifiers
         type: string
       item_id:
         type: string
       order_id:
         type: string
       quantity:
+        description: Business fields
         type: integer
       subtotal:
         type: number
@@ -63,15 +105,19 @@ definitions:
   model.PurchaseOrderWithItems:
     properties:
       created_at:
+        description: Timestamps
         type: string
       id:
+        description: Identifiers
         type: string
       items:
         items:
           $ref: '#/definitions/model.PurchaseOrderItem'
         type: array
       status:
-        $ref: '#/definitions/model.PurchaseOrderStatus'
+        allOf:
+        - $ref: '#/definitions/model.PurchaseOrderStatus'
+        description: Business fields
       total_amount:
         type: number
       updated_at:
@@ -86,44 +132,67 @@ definitions:
           $ref: '#/definitions/model.CreatePurchaseOrderItemRequest'
         type: array
     type: object
-host: localhost:8005
+  response.FieldError:
+    properties:
+      description:
+        type: string
+      title:
+        type: string
+    type: object
+  response.SimpleErrorDetail:
+    properties:
+      message:
+        example: unauthorized
+        type: string
+      type:
+        allOf:
+        - $ref: '#/definitions/errors.ErrorType'
+        example: unauthorized
+    type: object
+  response.SimpleErrorResponse:
+    properties:
+      error:
+        $ref: '#/definitions/response.SimpleErrorDetail'
+    type: object
+  response.SuccessResponse:
+    properties:
+      data: {}
+    type: object
+  response.ValidationErrorDetail:
+    properties:
+      details:
+        items:
+          $ref: '#/definitions/response.FieldError'
+        type: array
+      message:
+        example: Validation failed
+        type: string
+      type:
+        allOf:
+        - $ref: '#/definitions/errors.ErrorType'
+        example: validation
+    type: object
+  response.ValidationErrorResponse:
+    properties:
+      error:
+        $ref: '#/definitions/response.ValidationErrorDetail'
+    type: object
 info:
-  contact:
-    email: support@example.com
-    name: API Support
-    url: http://www.example.com/support
-  description: Purchase Service for managing Purchase Orders
-  license:
-    name: Apache 2.0
-    url: http://www.apache.org/licenses/LICENSE-2.0.html
-  termsOfService: http://swagger.io/terms/
-  title: Purchase Service API
-  version: "1.0"
+  contact: {}
 paths:
   /orders:
     get:
       consumes:
       - application/json
-      description: 'Get a list of purchase orders. Supports both pagination styles:
-        page/size or limit/offset'
+      description: Get a paginated list of purchase orders
       parameters:
-      - default: 1
-        description: Page number (1-based)
-        in: query
-        name: page
-        type: integer
       - default: 10
-        description: Page size
-        in: query
-        name: size
-        type: integer
-      - default: 10
-        description: Limit (alternative to size)
+        description: Limit
         in: query
         name: limit
         type: integer
       - default: 0
-        description: Offset (alternative to page)
+        description: Offset
         in: query
         name: offset
         type: integer
@@ -133,28 +202,37 @@ paths:
         "200":
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/model.PurchaseOrder'
-            type: array
-        "400":
-          description: Bad Request
-          schema:
-            type: string
+            allOf:
+            - $ref: '#/definitions/response.SuccessResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/model.PurchaseOrder'
+                  type: array
+              type: object
         "401":
           description: Unauthorized
           schema:
-            type: string
+            $ref: '#/definitions/response.SimpleErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/response.SimpleErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.SimpleErrorResponse'
       security:
       - BearerAuth: []
       summary: List purchase orders
       tags:
-      - purchase-orders
+      - purchase
     post:
       consumes:
       - application/json
-      description: Create a new purchase order in Draft status
+      description: Create a new purchase order linked to a vendor with order items
       parameters:
-      - description: Create purchase order request
+      - description: Order creation request
         in: body
         name: request
         required: true
@@ -166,25 +244,38 @@ paths:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/model.PurchaseOrderWithItems'
+            allOf:
+            - $ref: '#/definitions/response.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.PurchaseOrderWithItems'
+              type: object
         "400":
           description: Bad Request
           schema:
-            type: string
+            $ref: '#/definitions/response.ValidationErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            type: string
+            $ref: '#/definitions/response.SimpleErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/response.SimpleErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.SimpleErrorResponse'
       security:
       - BearerAuth: []
-      summary: Create purchase order
+      summary: Create a new purchase order
       tags:
-      - purchase-orders
+      - purchase
   /orders/{id}:
     get:
       consumes:
       - application/json
-      description: Get a purchase order by ID
+      description: Get a single purchase order with its items by order ID
       parameters:
       - description: Order ID
         in: path
@@ -197,35 +288,44 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/model.PurchaseOrderWithItems'
-        "400":
-          description: Bad Request
-          schema:
-            type: string
+            allOf:
+            - $ref: '#/definitions/response.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.PurchaseOrderWithItems'
+              type: object
         "401":
           description: Unauthorized
           schema:
-            type: string
+            $ref: '#/definitions/response.SimpleErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/response.SimpleErrorResponse'
         "404":
           description: Not Found
           schema:
-            type: string
+            $ref: '#/definitions/response.SimpleErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.SimpleErrorResponse'
       security:
       - BearerAuth: []
       summary: Get purchase order by ID
       tags:
-      - purchase-orders
+      - purchase
     put:
       consumes:
       - application/json
-      description: Update an existing purchase order (only if in Draft status)
+      description: Update a draft purchase order's items and details
       parameters:
       - description: Order ID
         in: path
         name: id
         required: true
         type: string
-      - description: Update purchase order request
+      - description: Order update request
         in: body
         name: request
         required: true
@@ -237,29 +337,42 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/model.PurchaseOrderWithItems'
+            allOf:
+            - $ref: '#/definitions/response.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.PurchaseOrderWithItems'
+              type: object
         "400":
           description: Bad Request
           schema:
-            type: string
+            $ref: '#/definitions/response.ValidationErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            type: string
+            $ref: '#/definitions/response.SimpleErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/response.SimpleErrorResponse'
         "404":
           description: Not Found
           schema:
-            type: string
+            $ref: '#/definitions/response.SimpleErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.SimpleErrorResponse'
       security:
       - BearerAuth: []
-      summary: Update purchase order
+      summary: Update a purchase order
       tags:
-      - purchase-orders
+      - purchase
   /orders/{id}/pay:
     post:
       consumes:
       - application/json
-      description: Change purchase order status from Received to Paid
+      description: Mark a received purchase order as paid
       parameters:
       - description: Order ID
         in: path
@@ -272,30 +385,43 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/model.PurchaseOrderWithItems'
+            allOf:
+            - $ref: '#/definitions/response.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.PurchaseOrderWithItems'
+              type: object
         "400":
           description: Bad Request
           schema:
-            type: string
+            $ref: '#/definitions/response.ValidationErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            type: string
+            $ref: '#/definitions/response.SimpleErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/response.SimpleErrorResponse'
         "404":
           description: Not Found
           schema:
-            type: string
+            $ref: '#/definitions/response.SimpleErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.SimpleErrorResponse'
       security:
       - BearerAuth: []
-      summary: Pay purchase order
+      summary: Pay a purchase order
       tags:
-      - purchase-orders
+      - purchase
   /orders/{id}/receive:
     post:
       consumes:
       - application/json
-      description: Change purchase order status from Draft to Received. Publishes
-        NATS event.
+      description: Receive a draft purchase order and publish purchase.order.received
+        event to increase inventory stock
       parameters:
       - description: Order ID
         in: path
@@ -308,29 +434,35 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/model.PurchaseOrderWithItems'
+            allOf:
+            - $ref: '#/definitions/response.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.PurchaseOrderWithItems'
+              type: object
         "400":
           description: Bad Request
           schema:
-            type: string
+            $ref: '#/definitions/response.ValidationErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            type: string
+            $ref: '#/definitions/response.SimpleErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/response.SimpleErrorResponse'
         "404":
           description: Not Found
           schema:
-            type: string
+            $ref: '#/definitions/response.SimpleErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.SimpleErrorResponse'
       security:
       - BearerAuth: []
-      summary: Receive purchase order
+      summary: Receive a purchase order
       tags:
-      - purchase-orders
-securityDefinitions:
-  BearerAuth:
-    description: 'Type "Bearer" followed by a space and JWT token. Example: "Bearer
-      eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."'
-    in: header
-    name: Authorization
-    type: apiKey
+      - purchase
 swagger: "2.0"
