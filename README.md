@@ -124,18 +124,18 @@ graph TB
     Purchase -->|Events| NATS
     NATS -->|Events| Inventory
     
-    style Gateway fill:#4A90E2,stroke:#2E5C8A,stroke-width:2px,color:#fff
-    style Auth fill:#F5A623,stroke:#D68910,stroke-width:2px
-    style Contact fill:#F5A623,stroke:#D68910,stroke-width:2px
-    style Inventory fill:#F5A623,stroke:#D68910,stroke-width:2px
-    style Sales fill:#F5A623,stroke:#D68910,stroke-width:2px
-    style Purchase fill:#F5A623,stroke:#D68910,stroke-width:2px
-    style NATS fill:#7ED321,stroke:#5FA315,stroke-width:2px
-    style AuthDB fill:#BD10E0,stroke:#8B0FA8,stroke-width:2px,color:#fff
-    style ContactDB fill:#BD10E0,stroke:#8B0FA8,stroke-width:2px,color:#fff
-    style InventoryDB fill:#BD10E0,stroke:#8B0FA8,stroke-width:2px,color:#fff
-    style SalesDB fill:#BD10E0,stroke:#8B0FA8,stroke-width:2px,color:#fff
-    style PurchaseDB fill:#BD10E0,stroke:#8B0FA8,stroke-width:2px,color:#fff
+    style Gateway fill:#000000,stroke:#000000,stroke-width:3px,color:#ffffff
+    style Auth fill:#ffffff,stroke:#000000,stroke-width:2px,color:#000000
+    style Contact fill:#ffffff,stroke:#000000,stroke-width:2px,color:#000000
+    style Inventory fill:#ffffff,stroke:#000000,stroke-width:2px,color:#000000
+    style Sales fill:#ffffff,stroke:#000000,stroke-width:2px,color:#000000
+    style Purchase fill:#ffffff,stroke:#000000,stroke-width:2px,color:#000000
+    style NATS fill:#000000,stroke:#000000,stroke-width:2px,color:#ffffff
+    style AuthDB fill:#ffffff,stroke:#000000,stroke-width:2px,color:#000000
+    style ContactDB fill:#ffffff,stroke:#000000,stroke-width:2px,color:#000000
+    style InventoryDB fill:#ffffff,stroke:#000000,stroke-width:2px,color:#000000
+    style SalesDB fill:#ffffff,stroke:#000000,stroke-width:2px,color:#000000
+    style PurchaseDB fill:#ffffff,stroke:#000000,stroke-width:2px,color:#000000
 ```
 
 ### Architecture Flow Explanation
