@@ -84,42 +84,58 @@ This project implements a complete microservices ecosystem using Golang with the
 ### System Architecture Diagram
 
 ```mermaid
-flowchart TB
-    Client[Client Application] -->|HTTP Requests| Gateway[API Gateway<br/>Port: 8000<br/>JWT Validation & Routing]
+graph TB
+    Client[Client Application]
+    Gateway[API Gateway :8000]
     
-    Gateway -->|REST API| Auth[Auth Service<br/>Port: 8002<br/>Authentication & Authorization]
-    Gateway -->|REST API| Contact[Contact Service<br/>Port: 8001<br/>Customer & Vendor Management]
-    Gateway -->|REST API| Inventory[Inventory Service<br/>Port: 8003<br/>Item & Stock Management]
-    Gateway -->|REST API| Sales[Sales Service<br/>Port: 8004<br/>Sales Order Management]
-    Gateway -->|REST API| Purchase[Purchase Service<br/>Port: 8005<br/>Purchase Order Management]
+    Auth[Auth Service :8002]
+    Contact[Contact Service :8001]
+    Inventory[Inventory Service :8003]
+    Sales[Sales Service :8004]
+    Purchase[Purchase Service :8005]
     
-    Auth -->|Database| AuthDB[(Auth Database<br/>PostgreSQL:5432)]
-    Contact -->|Database| ContactDB[(Contact Database<br/>PostgreSQL:5433)]
-    Inventory -->|Database| InventoryDB[(Inventory Database<br/>PostgreSQL:5434)]
-    Sales -->|Database| SalesDB[(Sales Database<br/>PostgreSQL:5435)]
-    Purchase -->|Database| PurchaseDB[(Purchase Database<br/>PostgreSQL:5436)]
+    AuthDB[(Auth DB :5432)]
+    ContactDB[(Contact DB :5433)]
+    InventoryDB[(Inventory DB :5434)]
+    SalesDB[(Sales DB :5435)]
+    PurchaseDB[(Purchase DB :5436)]
     
-    Sales -.->|Validate Customer| Contact
-    Purchase -.->|Validate Vendor| Contact
-    Sales -.->|Validate Items| Inventory
-    Purchase -.->|Validate Items| Inventory
+    NATS[NATS Broker :4222]
     
-    Sales -->|Publish Event| NATS[NATS Message Broker<br/>Port: 4222<br/>Event-Driven Communication]
-    Purchase -->|Publish Event| NATS
-    NATS -->|Subscribe Events| Inventory
+    Client -->|HTTP| Gateway
+    Gateway --> Auth
+    Gateway --> Contact
+    Gateway --> Inventory
+    Gateway --> Sales
+    Gateway --> Purchase
     
-    style Gateway fill:#e1f5ff
-    style Auth fill:#fff4e1
-    style Contact fill:#fff4e1
-    style Inventory fill:#fff4e1
-    style Sales fill:#fff4e1
-    style Purchase fill:#fff4e1
-    style NATS fill:#e8f5e9
-    style AuthDB fill:#f3e5f5
-    style ContactDB fill:#f3e5f5
-    style InventoryDB fill:#f3e5f5
-    style SalesDB fill:#f3e5f5
-    style PurchaseDB fill:#f3e5f5
+    Auth --> AuthDB
+    Contact --> ContactDB
+    Inventory --> InventoryDB
+    Sales --> SalesDB
+    Purchase --> PurchaseDB
+    
+    Sales -.->|Validate| Contact
+    Purchase -.->|Validate| Contact
+    Sales -.->|Validate| Inventory
+    Purchase -.->|Validate| Inventory
+    
+    Sales -->|Events| NATS
+    Purchase -->|Events| NATS
+    NATS -->|Events| Inventory
+    
+    style Gateway fill:#4A90E2,stroke:#2E5C8A,stroke-width:2px,color:#fff
+    style Auth fill:#F5A623,stroke:#D68910,stroke-width:2px
+    style Contact fill:#F5A623,stroke:#D68910,stroke-width:2px
+    style Inventory fill:#F5A623,stroke:#D68910,stroke-width:2px
+    style Sales fill:#F5A623,stroke:#D68910,stroke-width:2px
+    style Purchase fill:#F5A623,stroke:#D68910,stroke-width:2px
+    style NATS fill:#7ED321,stroke:#5FA315,stroke-width:2px
+    style AuthDB fill:#BD10E0,stroke:#8B0FA8,stroke-width:2px,color:#fff
+    style ContactDB fill:#BD10E0,stroke:#8B0FA8,stroke-width:2px,color:#fff
+    style InventoryDB fill:#BD10E0,stroke:#8B0FA8,stroke-width:2px,color:#fff
+    style SalesDB fill:#BD10E0,stroke:#8B0FA8,stroke-width:2px,color:#fff
+    style PurchaseDB fill:#BD10E0,stroke:#8B0FA8,stroke-width:2px,color:#fff
 ```
 
 ### Architecture Flow Explanation
