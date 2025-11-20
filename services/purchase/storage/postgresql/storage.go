@@ -3,145 +3,157 @@ package postgresql
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"microservice-challenge/package/errors"
 	"microservice-challenge/services/purchase/model"
-	"strings"
+	"microservice-challenge/services/purchase/storage/postgresql/db"
+	"strconv"
 
 	"github.com/google/uuid"
 )
 
 type Storage struct {
-	db *sql.DB
+	queries *db.Queries
+	db      *sql.DB
 }
 
-func NewStorage(db *sql.DB) *Storage {
-	return &Storage{db: db}
+func NewStorage(database *sql.DB) *Storage {
+	return &Storage{
+		queries: db.New(database),
+		db:      database,
+	}
 }
 
-func (s *Storage) DB() *sql.DB {
-	return s.db
+// convertDBOrderToModel converts sqlc generated db.PurchaseOrder to model.PurchaseOrder
+func convertDBOrderToModel(dbOrder db.PurchaseOrder) model.PurchaseOrder {
+	order := model.PurchaseOrder{
+		ID:        dbOrder.ID,
+		VendorID:  dbOrder.VendorID,
+		Status:    model.PurchaseOrderStatus(dbOrder.Status),
+		CreatedAt: dbOrder.CreatedAt,
+		UpdatedAt: dbOrder.UpdatedAt,
+	}
+
+	if totalAmount, err := strconv.ParseFloat(dbOrder.TotalAmount, 64); err == nil {
+		order.TotalAmount = totalAmount
+	}
+
+	return order
+}
+
+// convertModelOrderToCreateParams converts model.PurchaseOrder to sqlc CreateOrderParams
+func convertModelOrderToCreateParams(order model.PurchaseOrder) db.CreateOrderParams {
+	return db.CreateOrderParams{
+		ID:          order.ID,
+		VendorID:    order.VendorID,
+		Status:      string(order.Status),
+		TotalAmount: strconv.FormatFloat(order.TotalAmount, 'f', 2, 64),
+		CreatedAt:   order.CreatedAt,
+		UpdatedAt:   order.UpdatedAt,
+	}
+}
+
+// convertModelOrderToUpdateParams converts model.PurchaseOrder to sqlc UpdateOrderParams
+func convertModelOrderToUpdateParams(order model.PurchaseOrder) db.UpdateOrderParams {
+	return db.UpdateOrderParams{
+		ID:          order.ID,
+		VendorID:    order.VendorID,
+		Status:      string(order.Status),
+		TotalAmount: strconv.FormatFloat(order.TotalAmount, 'f', 2, 64),
+		UpdatedAt:   order.UpdatedAt,
+	}
+}
+
+// convertDBOrderItemToModel converts sqlc generated db.PurchaseOrderItem to model.PurchaseOrderItem
+func convertDBOrderItemToModel(dbItem db.PurchaseOrderItem) model.PurchaseOrderItem {
+	item := model.PurchaseOrderItem{
+		ID:        dbItem.ID,
+		OrderID:   dbItem.OrderID,
+		ItemID:    dbItem.ItemID,
+		Quantity:  int(dbItem.Quantity),
+		CreatedAt: dbItem.CreatedAt,
+		UpdatedAt: dbItem.UpdatedAt,
+	}
+
+	if unitPrice, err := strconv.ParseFloat(dbItem.UnitPrice, 64); err == nil {
+		item.UnitPrice = unitPrice
+	}
+	if subtotal, err := strconv.ParseFloat(dbItem.Subtotal, 64); err == nil {
+		item.Subtotal = subtotal
+	}
+
+	return item
+}
+
+// convertModelOrderItemToCreateParams converts model.PurchaseOrderItem to sqlc CreateOrderItemParams
+func convertModelOrderItemToCreateParams(item model.PurchaseOrderItem) db.CreateOrderItemParams {
+	return db.CreateOrderItemParams{
+		ID:        item.ID,
+		OrderID:   item.OrderID,
+		ItemID:    item.ItemID,
+		Quantity:  int32(item.Quantity),
+		UnitPrice: strconv.FormatFloat(item.UnitPrice, 'f', 2, 64),
+		Subtotal:  strconv.FormatFloat(item.Subtotal, 'f', 2, 64),
+		CreatedAt: item.CreatedAt,
+		UpdatedAt: item.UpdatedAt,
+	}
 }
 
 func (s *Storage) CreateOrder(ctx context.Context, order model.PurchaseOrder) error {
-	query := `
-		INSERT INTO purchase_orders (id, vendor_id, status, total_amount, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6)
-	`
-
-	_, err := s.db.ExecContext(ctx, query,
-		order.ID,
-		order.VendorID,
-		order.Status,
-		order.TotalAmount,
-		order.CreatedAt,
-		order.UpdatedAt,
-	)
-
-	if err != nil {
+	params := convertModelOrderToCreateParams(order)
+	if err := s.queries.CreateOrder(ctx, params); err != nil {
 		return errors.ErrInternalServerError
 	}
-
 	return nil
 }
 
 func (s *Storage) GetOrderByID(ctx context.Context, id string) (model.PurchaseOrder, error) {
-	var order model.PurchaseOrder
-
 	orderID, err := uuid.Parse(id)
 	if err != nil {
-		return order, errors.ErrBadRequest
+		return model.PurchaseOrder{}, errors.ErrBadRequest
 	}
 
-	query := `
-		SELECT id, vendor_id, status, total_amount, created_at, updated_at
-		FROM purchase_orders
-		WHERE id = $1
-	`
-
-	err = s.db.QueryRowContext(ctx, query, orderID).Scan(
-		&order.ID,
-		&order.VendorID,
-		&order.Status,
-		&order.TotalAmount,
-		&order.CreatedAt,
-		&order.UpdatedAt,
-	)
-
+	dbOrder, err := s.queries.GetOrderByID(ctx, orderID)
 	if err == sql.ErrNoRows {
-		return order, errors.ErrNotFound
+		return model.PurchaseOrder{}, errors.ErrNotFound
 	}
-
 	if err != nil {
-		return order, errors.ErrInternalServerError
+		return model.PurchaseOrder{}, errors.ErrInternalServerError
 	}
 
-	return order, nil
+	return convertDBOrderToModel(dbOrder), nil
 }
 
 func (s *Storage) ListOrders(ctx context.Context, limit, offset int) ([]model.PurchaseOrder, error) {
-	query := `
-		SELECT id, vendor_id, status, total_amount, created_at, updated_at
-		FROM purchase_orders
-		ORDER BY created_at DESC
-		LIMIT $1 OFFSET $2
-	`
+	params := db.ListOrdersParams{
+		Limit:  int32(limit),
+		Offset: int32(offset),
+	}
 
-	rows, err := s.db.QueryContext(ctx, query, limit, offset)
+	dbOrders, err := s.queries.ListOrders(ctx, params)
 	if err != nil {
 		return nil, errors.ErrInternalServerError
 	}
-	defer rows.Close()
 
-	orders := make([]model.PurchaseOrder, 0, limit)
-	for rows.Next() {
-		var order model.PurchaseOrder
-		if err := rows.Scan(
-			&order.ID,
-			&order.VendorID,
-			&order.Status,
-			&order.TotalAmount,
-			&order.CreatedAt,
-			&order.UpdatedAt,
-		); err != nil {
-			return nil, errors.ErrInternalServerError
-		}
-		orders = append(orders, order)
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, errors.ErrInternalServerError
+	orders := make([]model.PurchaseOrder, 0, len(dbOrders))
+	for _, dbOrder := range dbOrders {
+		orders = append(orders, convertDBOrderToModel(dbOrder))
 	}
 
 	return orders, nil
 }
 
 func (s *Storage) UpdateOrder(ctx context.Context, order model.PurchaseOrder) error {
-	query := `
-		UPDATE purchase_orders
-		SET vendor_id = $2, status = $3, total_amount = $4, updated_at = $5
-		WHERE id = $1
-	`
-
-	result, err := s.db.ExecContext(ctx, query,
-		order.ID,
-		order.VendorID,
-		order.Status,
-		order.TotalAmount,
-		order.UpdatedAt,
-	)
-
-	if err != nil {
-		return errors.ErrInternalServerError
-	}
-
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return errors.ErrInternalServerError
-	}
-
-	if rowsAffected == 0 {
+	_, err := s.queries.GetOrderByID(ctx, order.ID)
+	if err == sql.ErrNoRows {
 		return errors.ErrNotFound
+	}
+	if err != nil {
+		return errors.ErrInternalServerError
+	}
+
+	params := convertModelOrderToUpdateParams(order)
+	if err := s.queries.UpdateOrder(ctx, params); err != nil {
+		return errors.ErrInternalServerError
 	}
 
 	return nil
@@ -153,50 +165,31 @@ func (s *Storage) UpdateOrderStatus(ctx context.Context, id string, status model
 		return errors.ErrBadRequest
 	}
 
-	query := `
-		UPDATE purchase_orders
-		SET status = $2, updated_at = CURRENT_TIMESTAMP
-		WHERE id = $1
-	`
+	params := db.UpdateOrderStatusParams{
+		ID:     orderID,
+		Status: string(status),
+	}
 
-	result, err := s.db.ExecContext(ctx, query, orderID, status)
-	if err != nil {
+	if err := s.queries.UpdateOrderStatus(ctx, params); err != nil {
 		return errors.ErrInternalServerError
 	}
 
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return errors.ErrInternalServerError
-	}
-
-	if rowsAffected == 0 {
+	_, err = s.queries.GetOrderByID(ctx, orderID)
+	if err == sql.ErrNoRows {
 		return errors.ErrNotFound
+	}
+	if err != nil {
+		return errors.ErrInternalServerError
 	}
 
 	return nil
 }
 
 func (s *Storage) CreateOrderItem(ctx context.Context, item model.PurchaseOrderItem) error {
-	query := `
-		INSERT INTO purchase_order_items (id, order_id, item_id, quantity, unit_price, subtotal, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-	`
-
-	_, err := s.db.ExecContext(ctx, query,
-		item.ID,
-		item.OrderID,
-		item.ItemID,
-		item.Quantity,
-		item.UnitPrice,
-		item.Subtotal,
-		item.CreatedAt,
-		item.UpdatedAt,
-	)
-
-	if err != nil {
+	params := convertModelOrderItemToCreateParams(item)
+	if err := s.queries.CreateOrderItem(ctx, params); err != nil {
 		return errors.ErrInternalServerError
 	}
-
 	return nil
 }
 
@@ -205,33 +198,21 @@ func (s *Storage) CreateOrderItems(ctx context.Context, items []model.PurchaseOr
 		return nil
 	}
 
-	query := `
-		INSERT INTO purchase_order_items (id, order_id, item_id, quantity, unit_price, subtotal, created_at, updated_at)
-		VALUES `
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return errors.ErrInternalServerError
+	}
+	defer tx.Rollback()
 
-	values := make([]interface{}, 0, len(items)*8)
-	placeholders := make([]string, 0, len(items))
-
-	for i, item := range items {
-		offset := i * 8
-		placeholders = append(placeholders, fmt.Sprintf("($%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d)",
-			offset+1, offset+2, offset+3, offset+4, offset+5, offset+6, offset+7, offset+8))
-		values = append(values,
-			item.ID,
-			item.OrderID,
-			item.ItemID,
-			item.Quantity,
-			item.UnitPrice,
-			item.Subtotal,
-			item.CreatedAt,
-			item.UpdatedAt,
-		)
+	qtx := s.queries.WithTx(tx)
+	for _, item := range items {
+		params := convertModelOrderItemToCreateParams(item)
+		if err := qtx.CreateOrderItem(ctx, params); err != nil {
+			return errors.ErrInternalServerError
+		}
 	}
 
-	query += strings.Join(placeholders, ", ")
-
-	_, err := s.db.ExecContext(ctx, query, values...)
-	if err != nil {
+	if err := tx.Commit(); err != nil {
 		return errors.ErrInternalServerError
 	}
 
@@ -244,39 +225,14 @@ func (s *Storage) GetOrderItemsByOrderID(ctx context.Context, orderID string) ([
 		return nil, errors.ErrBadRequest
 	}
 
-	query := `
-		SELECT id, order_id, item_id, quantity, unit_price, subtotal, created_at, updated_at
-		FROM purchase_order_items
-		WHERE order_id = $1
-		ORDER BY created_at ASC
-	`
-
-	rows, err := s.db.QueryContext(ctx, query, orderUUID)
+	dbItems, err := s.queries.GetOrderItemsByOrderID(ctx, orderUUID)
 	if err != nil {
 		return nil, errors.ErrInternalServerError
 	}
-	defer rows.Close()
 
-	items := make([]model.PurchaseOrderItem, 0)
-	for rows.Next() {
-		var item model.PurchaseOrderItem
-		if err := rows.Scan(
-			&item.ID,
-			&item.OrderID,
-			&item.ItemID,
-			&item.Quantity,
-			&item.UnitPrice,
-			&item.Subtotal,
-			&item.CreatedAt,
-			&item.UpdatedAt,
-		); err != nil {
-			return nil, errors.ErrInternalServerError
-		}
-		items = append(items, item)
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, errors.ErrInternalServerError
+	items := make([]model.PurchaseOrderItem, 0, len(dbItems))
+	for _, dbItem := range dbItems {
+		items = append(items, convertDBOrderItemToModel(dbItem))
 	}
 
 	return items, nil
@@ -288,10 +244,7 @@ func (s *Storage) DeleteOrderItemsByOrderID(ctx context.Context, orderID string)
 		return errors.ErrBadRequest
 	}
 
-	query := `DELETE FROM purchase_order_items WHERE order_id = $1`
-
-	_, err = s.db.ExecContext(ctx, query, orderUUID)
-	if err != nil {
+	if err := s.queries.DeleteOrderItemsByOrderID(ctx, orderUUID); err != nil {
 		return errors.ErrInternalServerError
 	}
 

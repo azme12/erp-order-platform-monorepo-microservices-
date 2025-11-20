@@ -24,12 +24,18 @@ setup:
 
 swagger:
 	@echo "Generating Swagger docs..."
-	@echo "Run 'swag init' in each service directory manually, or use:"
-	@echo "  cd services/auth && swag init -g cmd/main.go -o docs"
-	@echo "  cd services/contact && swag init -g cmd/main.go -o docs"
-	@echo "  cd services/inventory && swag init -g cmd/main.go -o docs"
-	@echo "  cd services/sales && swag init -g cmd/main.go -o docs"
-	@echo "  cd services/purchase && swag init -g cmd/main.go -o docs"
+	@cd services/auth && command swag init -g cmd/main.go -o docs --parseDependency --parseInternal
+	@cd services/contact && command swag init -g cmd/main.go -o docs --parseDependency --parseInternal
+	@cd services/inventory && command swag init -g cmd/main.go -o docs --parseDependency --parseInternal
+	@cd services/sales && command swag init -g cmd/main.go -o docs --parseDependency --parseInternal
+	@cd services/purchase && command swag init -g cmd/main.go -o docs --parseDependency --parseInternal
+	@echo "✅ Swagger docs generated"
+
+sqlc:
+	@echo "Generating SQL code with sqlc..."
+	@cd services/auth && sqlc generate
+	@echo "✅ Auth service sqlc code generated"
+	@echo "⚠️  Other services pending sqlc setup"
 
 
 build:

@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"microservice-challenge/package/errors"
 	"microservice-challenge/services/inventory/model"
+	"microservice-challenge/services/inventory/storage/postgresql/db"
+	"strconv"
 	"strings"
 
 	"github.com/google/uuid"
@@ -12,32 +14,117 @@ import (
 )
 
 type Storage struct {
-	db *sql.DB
+	queries *db.Queries
+	db      *sql.DB
 }
 
-func NewStorage(db *sql.DB) *Storage {
-	return &Storage{db: db}
+func NewStorage(database *sql.DB) *Storage {
+	return &Storage{
+		queries: db.New(database),
+		db:      database,
+	}
 }
 
-func (s *Storage) DB() *sql.DB {
-	return s.db
+// convertDBItemToModel converts sqlc generated db.Item to model.Item
+func convertDBItemToModel(dbItem db.Item) model.Item {
+	item := model.Item{
+		ID:        dbItem.ID,
+		Name:      dbItem.Name,
+		SKU:       dbItem.Sku,
+		CreatedAt: dbItem.CreatedAt,
+		UpdatedAt: dbItem.UpdatedAt,
+	}
+
+	if dbItem.Description.Valid {
+		item.Description = dbItem.Description.String
+	}
+
+	if unitPrice, err := strconv.ParseFloat(dbItem.UnitPrice, 64); err == nil {
+		item.UnitPrice = unitPrice
+	}
+
+	return item
+}
+
+// convertModelItemToCreateParams converts model.Item to sqlc CreateItemParams
+func convertModelItemToCreateParams(item model.Item) db.CreateItemParams {
+	params := db.CreateItemParams{
+		ID:        item.ID,
+		Name:      item.Name,
+		Sku:       item.SKU,
+		UnitPrice: strconv.FormatFloat(item.UnitPrice, 'f', 2, 64),
+		CreatedAt: item.CreatedAt,
+		UpdatedAt: item.UpdatedAt,
+	}
+
+	if item.Description != "" {
+		params.Description = sql.NullString{
+			String: item.Description,
+			Valid:  true,
+		}
+	}
+
+	return params
+}
+
+// convertModelItemToUpdateParams converts model.Item to sqlc UpdateItemParams
+func convertModelItemToUpdateParams(item model.Item) db.UpdateItemParams {
+	params := db.UpdateItemParams{
+		ID:        item.ID,
+		Name:      item.Name,
+		Sku:       item.SKU,
+		UnitPrice: strconv.FormatFloat(item.UnitPrice, 'f', 2, 64),
+		UpdatedAt: item.UpdatedAt,
+	}
+
+	if item.Description != "" {
+		params.Description = sql.NullString{
+			String: item.Description,
+			Valid:  true,
+		}
+	}
+
+	return params
+}
+
+// convertDBStockToModel converts sqlc generated db.Stock to model.Stock
+func convertDBStockToModel(dbStock db.Stock) model.Stock {
+	return model.Stock{
+		ID:        dbStock.ID,
+		ItemID:    dbStock.ItemID,
+		Quantity:  int(dbStock.Quantity),
+		CreatedAt: dbStock.CreatedAt,
+		UpdatedAt: dbStock.UpdatedAt,
+	}
+}
+
+// convertModelStockToCreateParams converts model.Stock to sqlc CreateStockParams
+func convertModelStockToCreateParams(stock model.Stock) db.CreateStockParams {
+	return db.CreateStockParams{
+		ID:        stock.ID,
+		ItemID:    stock.ItemID,
+		Quantity:  int32(stock.Quantity),
+		CreatedAt: stock.CreatedAt,
+		UpdatedAt: stock.UpdatedAt,
+	}
+}
+
+// convertModelStockToUpdateParams converts model.Stock to sqlc UpdateStockParams
+func convertModelStockToUpdateParams(stock model.Stock) db.UpdateStockParams {
+	return db.UpdateStockParams{
+		ItemID:    stock.ItemID,
+		Quantity:  int32(stock.Quantity),
+		UpdatedAt: stock.UpdatedAt,
+	}
 }
 
 func (s *Storage) CreateItem(ctx context.Context, item model.Item) error {
-	query := `
-		INSERT INTO items (id, name, description, sku, unit_price, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
-	`
+	item.SKU = strings.ToUpper(strings.TrimSpace(item.SKU))
+	item.Name = strings.TrimSpace(item.Name)
+	item.Description = strings.TrimSpace(item.Description)
 
-	_, err := s.db.ExecContext(ctx, query,
-		item.ID,
-		strings.TrimSpace(item.Name),
-		strings.TrimSpace(item.Description),
-		strings.ToUpper(strings.TrimSpace(item.SKU)),
-		item.UnitPrice,
-		item.CreatedAt,
-		item.UpdatedAt,
-	)
+	params := convertModelItemToCreateParams(item)
+	err := s.queries.CreateItem(ctx, params)
 
 	if err != nil {
 		if pqErr, ok := err.(*pq.Error); ok {
@@ -52,123 +139,69 @@ func (s *Storage) CreateItem(ctx context.Context, item model.Item) error {
 }
 
 func (s *Storage) GetItemByID(ctx context.Context, id string) (model.Item, error) {
-	var item model.Item
-
 	itemID, err := uuid.Parse(id)
 	if err != nil {
-		return item, errors.ErrBadRequest
+		return model.Item{}, errors.ErrBadRequest
 	}
 
-	query := `
-		SELECT id, name, description, sku, unit_price, created_at, updated_at
-		FROM items
-		WHERE id = $1
-	`
-
-	err = s.db.QueryRowContext(ctx, query, itemID).Scan(
-		&item.ID,
-		&item.Name,
-		&item.Description,
-		&item.SKU,
-		&item.UnitPrice,
-		&item.CreatedAt,
-		&item.UpdatedAt,
-	)
-
+	dbItem, err := s.queries.GetItemByID(ctx, itemID)
 	if err == sql.ErrNoRows {
-		return item, errors.ErrNotFound
+		return model.Item{}, errors.ErrNotFound
 	}
-
 	if err != nil {
-		return item, errors.ErrInternalServerError
+		return model.Item{}, errors.ErrInternalServerError
 	}
 
-	return item, nil
+	return convertDBItemToModel(dbItem), nil
 }
 
 func (s *Storage) GetItemBySKU(ctx context.Context, sku string) (model.Item, error) {
-	var item model.Item
-
-	query := `
-		SELECT id, name, description, sku, unit_price, created_at, updated_at
-		FROM items
-		WHERE sku = $1
-	`
-
-	err := s.db.QueryRowContext(ctx, query, strings.ToUpper(strings.TrimSpace(sku))).Scan(
-		&item.ID,
-		&item.Name,
-		&item.Description,
-		&item.SKU,
-		&item.UnitPrice,
-		&item.CreatedAt,
-		&item.UpdatedAt,
-	)
-
+	normalizedSKU := strings.ToUpper(strings.TrimSpace(sku))
+	dbItem, err := s.queries.GetItemBySKU(ctx, normalizedSKU)
 	if err == sql.ErrNoRows {
-		return item, errors.ErrNotFound
+		return model.Item{}, errors.ErrNotFound
 	}
-
 	if err != nil {
-		return item, errors.ErrInternalServerError
+		return model.Item{}, errors.ErrInternalServerError
 	}
 
-	return item, nil
+	return convertDBItemToModel(dbItem), nil
 }
 
 func (s *Storage) ListItems(ctx context.Context, limit, offset int) ([]model.Item, error) {
-	query := `
-		SELECT id, name, description, sku, unit_price, created_at, updated_at
-		FROM items
-		ORDER BY created_at DESC
-		LIMIT $1 OFFSET $2
-	`
+	params := db.ListItemsParams{
+		Limit:  int32(limit),
+		Offset: int32(offset),
+	}
 
-	rows, err := s.db.QueryContext(ctx, query, limit, offset)
+	dbItems, err := s.queries.ListItems(ctx, params)
 	if err != nil {
 		return nil, errors.ErrInternalServerError
 	}
-	defer rows.Close()
 
-	items := make([]model.Item, 0, limit)
-	for rows.Next() {
-		var item model.Item
-		if err := rows.Scan(
-			&item.ID,
-			&item.Name,
-			&item.Description,
-			&item.SKU,
-			&item.UnitPrice,
-			&item.CreatedAt,
-			&item.UpdatedAt,
-		); err != nil {
-			return nil, errors.ErrInternalServerError
-		}
-		items = append(items, item)
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, errors.ErrInternalServerError
+	items := make([]model.Item, 0, len(dbItems))
+	for _, dbItem := range dbItems {
+		items = append(items, convertDBItemToModel(dbItem))
 	}
 
 	return items, nil
 }
 
 func (s *Storage) UpdateItem(ctx context.Context, item model.Item) error {
-	query := `
-		UPDATE items
-		SET name = $2, description = $3, sku = $4, unit_price = $5, updated_at = $6
-		WHERE id = $1
-	`
+	_, err := s.queries.GetItemByID(ctx, item.ID)
+	if err == sql.ErrNoRows {
+		return errors.ErrNotFound
+	}
+	if err != nil {
+		return errors.ErrInternalServerError
+	}
 
-	result, err := s.db.ExecContext(ctx, query,
-		item.ID,
-		strings.TrimSpace(item.Name),
-		strings.TrimSpace(item.Description),
-		strings.ToUpper(strings.TrimSpace(item.SKU)),
-		item.UnitPrice,
-		item.UpdatedAt,
-	)
+	item.SKU = strings.ToUpper(strings.TrimSpace(item.SKU))
+	item.Name = strings.TrimSpace(item.Name)
+	item.Description = strings.TrimSpace(item.Description)
+
+	params := convertModelItemToUpdateParams(item)
+	err = s.queries.UpdateItem(ctx, params)
 
 	if err != nil {
 		if pqErr, ok := err.(*pq.Error); ok {
@@ -177,15 +210,6 @@ func (s *Storage) UpdateItem(ctx context.Context, item model.Item) error {
 			}
 		}
 		return errors.ErrInternalServerError
-	}
-
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return errors.ErrInternalServerError
-	}
-
-	if rowsAffected == 0 {
-		return errors.ErrNotFound
 	}
 
 	return nil
@@ -197,71 +221,42 @@ func (s *Storage) DeleteItem(ctx context.Context, id string) error {
 		return errors.ErrBadRequest
 	}
 
-	query := `DELETE FROM items WHERE id = $1`
-
-	result, err := s.db.ExecContext(ctx, query, itemID)
-	if err != nil {
-		return errors.ErrInternalServerError
-	}
-
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return errors.ErrInternalServerError
-	}
-
-	if rowsAffected == 0 {
+	_, err = s.queries.GetItemByID(ctx, itemID)
+	if err == sql.ErrNoRows {
 		return errors.ErrNotFound
+	}
+	if err != nil {
+		return errors.ErrInternalServerError
+	}
+
+	err = s.queries.DeleteItem(ctx, itemID)
+	if err != nil {
+		return errors.ErrInternalServerError
 	}
 
 	return nil
 }
 
 func (s *Storage) GetStockByItemID(ctx context.Context, itemID string) (model.Stock, error) {
-	var stock model.Stock
-
 	itemUUID, err := uuid.Parse(itemID)
 	if err != nil {
-		return stock, errors.ErrBadRequest
+		return model.Stock{}, errors.ErrBadRequest
 	}
 
-	query := `
-		SELECT id, item_id, quantity, created_at, updated_at
-		FROM stock
-		WHERE item_id = $1
-	`
-
-	err = s.db.QueryRowContext(ctx, query, itemUUID).Scan(
-		&stock.ID,
-		&stock.ItemID,
-		&stock.Quantity,
-		&stock.CreatedAt,
-		&stock.UpdatedAt,
-	)
-
+	dbStock, err := s.queries.GetStockByItemID(ctx, itemUUID)
 	if err == sql.ErrNoRows {
-		return stock, errors.ErrNotFound
+		return model.Stock{}, errors.ErrNotFound
 	}
-
 	if err != nil {
-		return stock, errors.ErrInternalServerError
+		return model.Stock{}, errors.ErrInternalServerError
 	}
 
-	return stock, nil
+	return convertDBStockToModel(dbStock), nil
 }
 
 func (s *Storage) CreateStock(ctx context.Context, stock model.Stock) error {
-	query := `
-		INSERT INTO stock (id, item_id, quantity, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5)
-	`
-
-	_, err := s.db.ExecContext(ctx, query,
-		stock.ID,
-		stock.ItemID,
-		stock.Quantity,
-		stock.CreatedAt,
-		stock.UpdatedAt,
-	)
+	params := convertModelStockToCreateParams(stock)
+	err := s.queries.CreateStock(ctx, params)
 
 	if err != nil {
 		if pqErr, ok := err.(*pq.Error); ok {
@@ -276,29 +271,11 @@ func (s *Storage) CreateStock(ctx context.Context, stock model.Stock) error {
 }
 
 func (s *Storage) UpdateStock(ctx context.Context, stock model.Stock) error {
-	query := `
-		UPDATE stock
-		SET quantity = $2, updated_at = $3
-		WHERE item_id = $1
-	`
-
-	result, err := s.db.ExecContext(ctx, query,
-		stock.ItemID,
-		stock.Quantity,
-		stock.UpdatedAt,
-	)
+	params := convertModelStockToUpdateParams(stock)
+	err := s.queries.UpdateStock(ctx, params)
 
 	if err != nil {
 		return errors.ErrInternalServerError
-	}
-
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return errors.ErrInternalServerError
-	}
-
-	if rowsAffected == 0 {
-		return errors.ErrNotFound
 	}
 
 	return nil
@@ -316,9 +293,9 @@ func (s *Storage) AdjustStock(ctx context.Context, itemID string, quantityDelta 
 	}
 	defer tx.Rollback()
 
-	var currentQuantity int
-	query := `SELECT quantity FROM stock WHERE item_id = $1 FOR UPDATE`
-	err = tx.QueryRowContext(ctx, query, itemUUID).Scan(&currentQuantity)
+	qtx := s.queries.WithTx(tx)
+
+	currentQuantity, err := qtx.GetStockQuantityForUpdate(ctx, itemUUID)
 	if err == sql.ErrNoRows {
 		return errors.ErrNotFound
 	}
@@ -326,19 +303,16 @@ func (s *Storage) AdjustStock(ctx context.Context, itemID string, quantityDelta 
 		return errors.ErrInternalServerError
 	}
 
-	newQuantity := currentQuantity + quantityDelta
+	newQuantity := int(currentQuantity) + quantityDelta
 	if newQuantity < 0 {
 		return errors.ErrBadRequest
 	}
 
-	updateQuery := `
-		UPDATE stock
-		SET quantity = $2, updated_at = CURRENT_TIMESTAMP
-		WHERE item_id = $1
-	`
-
-	_, err = tx.ExecContext(ctx, updateQuery, itemUUID, newQuantity)
-	if err != nil {
+	adjustParams := db.AdjustStockParams{
+		ItemID:   itemUUID,
+		Quantity: int32(quantityDelta),
+	}
+	if err := qtx.AdjustStock(ctx, adjustParams); err != nil {
 		return errors.ErrInternalServerError
 	}
 

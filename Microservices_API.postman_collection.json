@@ -1,0 +1,1789 @@
+{
+	"info": {
+		"_postman_id": "microservices-api-collection",
+		"name": "Microservices API - Complete Collection",
+		"description": "Complete API collection for Microservices Challenge\n\n**Base URL:** http://localhost:8000\n\n**Setup Instructions:**\n1. Import this collection into Postman\n2. Run \"1. Authentication \u2192 Register User\" or \"Login\" to get access token\n3. Token is automatically saved to collection variable `access_token`\n4. All protected endpoints will use this token automatically\n\n**Authentication:**\n- Most endpoints require JWT Bearer token in Authorization header\n- Format: `Authorization: Bearer {{access_token}}`\n- Token expires after 24 hours (default)\n- Get new token by logging in again\n\n**User Roles:**\n- `inventory_manager`: Can manage inventory items, stock, and orders\n- `finance_manager`: Full access including delete operations and payment confirmations\n\n**Collection Variables:**\n- `base_url`: API Gateway URL (default: http://localhost:8000)\n- `access_token`: JWT token (auto-populated after login)\n- `customer_id`: Last created customer ID (auto-saved)\n- `vendor_id`: Last created vendor ID (auto-saved)\n- `item_id`: Last created item ID (auto-saved)\n- `sales_order_id`: Last created sales order ID (auto-saved)\n- `purchase_order_id`: Last created purchase order ID (auto-saved)\n\n**Request Headers:**\n- All requests include `Content-Type: application/json` for POST/PUT requests\n- Protected endpoints include `Authorization: Bearer {{access_token}}`\n- Headers are pre-configured in each request",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{access_token}}",
+				"type": "string"
+			}
+		]
+	},
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8000",
+			"type": "string"
+		},
+		{
+			"key": "access_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "customer_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "vendor_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "item_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "sales_order_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "purchase_order_id",
+			"value": "",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "1. Authentication",
+			"item": [
+				{
+					"name": "Register User",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    const response = pm.response.json();",
+									"    pm.collectionVariables.set('user_id', response.data.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"finance@example.com\",\n    \"password\": \"securepassword123\",\n    \"role\": \"finance_manager\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/register",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"register"
+							]
+						},
+						"description": "Register a new user with email, password, and role.\n\n**Roles:**\n- `inventory_manager`\n- `finance_manager`\n\n**Response:** Returns user object with ID, email, role, and timestamps."
+					},
+					"response": [
+						{
+							"name": "Success - User Created",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"email\": \"finance@example.com\",\n    \"password\": \"securepassword123\",\n    \"role\": \"finance_manager\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/auth/register",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"auth",
+										"register"
+									]
+								}
+							},
+							"status": "Created",
+							"code": 201,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": 201,\n    \"message\": \"User registered successfully\",\n    \"data\": {\n        \"id\": \"550e8400-e29b-41d4-a716-446655440000\",\n        \"email\": \"finance@example.com\",\n        \"role\": \"finance_manager\",\n        \"created_at\": \"2025-11-20T12:00:00Z\",\n        \"updated_at\": \"2025-11-20T12:00:00Z\"\n    }\n}"
+						}
+					]
+				},
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    pm.collectionVariables.set('access_token', response.data.access_token);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"finance@example.com\",\n    \"password\": \"securepassword123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/login",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"login"
+							]
+						},
+						"description": "Authenticate user and receive JWT access token.\n\n**Response:** Returns access_token, token_type, expires_in, and user object.\n\n**Note:** Token is automatically saved to collection variable `access_token`."
+					},
+					"response": [
+						{
+							"name": "Success - Login",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"email\": \"finance@example.com\",\n    \"password\": \"securepassword123\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/auth/login",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"auth",
+										"login"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": 200,\n    \"message\": \"Login successful\",\n    \"data\": {\n        \"access_token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\",\n        \"token_type\": \"Bearer\",\n        \"expires_in\": 86400,\n        \"user\": {\n            \"id\": \"550e8400-e29b-41d4-a716-446655440000\",\n            \"email\": \"finance@example.com\",\n            \"role\": \"finance_manager\"\n        }\n    }\n}"
+						}
+					]
+				},
+				{
+					"name": "Forgot Password",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"finance@example.com\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/forgot-password",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"forgot-password"
+							]
+						},
+						"description": "Request password reset token. Returns reset token if email exists."
+					}
+				},
+				{
+					"name": "Reset Password",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"reset_token\": \"a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6\",\n    \"new_password\": \"newpassword123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/reset-password",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"reset-password"
+							]
+						},
+						"description": "Reset password using reset token from forgot-password endpoint."
+					}
+				},
+				{
+					"name": "Generate Service Token",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"service_name\": \"sales\",\n    \"service_secret\": \"your-secret-key-change-in-production_sales\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/service-token",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"service-token"
+							]
+						},
+						"description": "Generate JWT token for inter-service communication."
+					}
+				}
+			]
+		},
+		{
+			"name": "2. Contact Service - Customers",
+			"item": [
+				{
+					"name": "List Customers",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"description": "JWT Bearer token for authentication"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"description": "Expected response format"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/customers?limit=10&offset=0",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"customers"
+							],
+							"query": [
+								{
+									"key": "limit",
+									"value": "10",
+									"description": "Number of items per page"
+								},
+								{
+									"key": "offset",
+									"value": "0",
+									"description": "Number of items to skip"
+								}
+							]
+						},
+						"description": "Retrieve a paginated list of all customers.\n\n**Authentication:** Required (Bearer token)\n\n**Query Parameters:**\n- `limit` (optional): Number of items per page (default: 10)\n- `offset` (optional): Number of items to skip (default: 0)\n\n**Response:** Returns array of customer objects with pagination metadata.\n\n**Example Response:**\n```json\n{\n  \"status\": 200,\n  \"message\": \"Customers retrieved successfully\",\n  \"data\": {\n    \"customers\": [...],\n    \"total\": 100,\n    \"limit\": 10,\n    \"offset\": 0\n  }\n}\n```"
+					}
+				},
+				{
+					"name": "Get Customer by ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    pm.collectionVariables.set('customer_id', response.data.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"description": "JWT Bearer token for authentication"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"description": "Expected response format"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/customers/{{customer_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"customers",
+								"{{customer_id}}"
+							]
+						},
+						"description": "Retrieve detailed information for a specific customer by ID.\n\n**Authentication:** Required (Bearer token)\n\n**Path Parameters:**\n- `customer_id`: UUID of the customer (from collection variable)\n\n**Response:** Returns customer object with all fields including timestamps.\n\n**Example Response:**\n```json\n{\n  \"status\": 200,\n  \"message\": \"Customer retrieved successfully\",\n  \"data\": {\n    \"id\": \"550e8400-e29b-41d4-a716-446655440000\",\n    \"name\": \"John Doe\",\n    \"email\": \"john.doe@example.com\",\n    \"phone\": \"+251912345678\",\n    \"address\": \"123 Main Street, Addis Ababa\",\n    \"created_at\": \"2025-11-20T12:00:00Z\",\n    \"updated_at\": \"2025-11-20T12:00:00Z\"\n  }\n}\n```"
+					}
+				},
+				{
+					"name": "Create Customer",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    const response = pm.response.json();",
+									"    pm.collectionVariables.set('customer_id', response.data.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"description": "JWT Bearer token for authentication"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"description": "Request body content type"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"description": "Expected response format"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"John Doe\",\n    \"email\": \"john.doe@example.com\",\n    \"phone\": \"+251912345678\",\n    \"address\": \"123 Main Street, Addis Ababa\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/customers",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"customers"
+							]
+						},
+						"description": "Create a new customer record.\n\n**Authentication:** Required (Bearer token)\n\n**Request Body:**\n- `name` (required): Customer full name\n- `email` (required): Valid email address (must be unique)\n- `phone` (required): Phone number in E.164 format (e.g., +251912345678)\n- `address` (required): Customer address\n\n**Phone Format:** Must be in E.164 format starting with country code (e.g., +251912345678 for Ethiopia)\n\n**Response:** Returns created customer object with generated UUID and timestamps.\n\n**Example Response:**\n```json\n{\n  \"status\": 201,\n  \"message\": \"Customer created successfully\",\n  \"data\": {\n    \"id\": \"123e4567-e89b-12d3-a456-426614174000\",\n    \"name\": \"John Doe\",\n    \"email\": \"john.doe@example.com\",\n    \"phone\": \"+251912345678\",\n    \"address\": \"123 Main Street, Addis Ababa\",\n    \"created_at\": \"2025-11-20T12:00:00Z\",\n    \"updated_at\": \"2025-11-20T12:00:00Z\"\n  }\n}\n```\n\n**Note:** Customer ID is automatically saved to collection variable `customer_id` for use in subsequent requests."
+					},
+					"response": [
+						{
+							"name": "Success - Customer Created",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"name\": \"John Doe\",\n    \"email\": \"john.doe@example.com\",\n    \"phone\": \"+251912345678\",\n    \"address\": \"123 Main Street, Addis Ababa\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/customers",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"customers"
+									]
+								}
+							},
+							"status": "Created",
+							"code": 201,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": 201,\n    \"message\": \"Customer created successfully\",\n    \"data\": {\n        \"id\": \"123e4567-e89b-12d3-a456-426614174000\",\n        \"name\": \"John Doe\",\n        \"email\": \"john.doe@example.com\",\n        \"phone\": \"+251912345678\",\n        \"address\": \"123 Main Street, Addis Ababa\",\n        \"created_at\": \"2025-11-20T12:00:00Z\",\n        \"updated_at\": \"2025-11-20T12:00:00Z\"\n    }\n}"
+						}
+					]
+				},
+				{
+					"name": "Update Customer",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"description": "JWT Bearer token for authentication"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"description": "Request body content type"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"description": "Expected response format"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"John Doe Updated\",\n    \"email\": \"john.doe.updated@example.com\",\n    \"phone\": \"+251912345679\",\n    \"address\": \"456 Updated Street, Addis Ababa\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/customers/{{customer_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"customers",
+								"{{customer_id}}"
+							]
+						},
+						"description": "Update an existing customer's information.\n\n**Authentication:** Required (Bearer token)\n\n**Path Parameters:**\n- `customer_id`: UUID of the customer to update (from collection variable)\n\n**Request Body:**\n- `name` (optional): Updated customer name\n- `email` (optional): Updated email address (must be unique if changed)\n- `phone` (optional): Updated phone number in E.164 format\n- `address` (optional): Updated address\n\n**Response:** Returns updated customer object.\n\n**Example Response:**\n```json\n{\n  \"status\": 200,\n  \"message\": \"Customer updated successfully\",\n  \"data\": {\n    \"id\": \"123e4567-e89b-12d3-a456-426614174000\",\n    \"name\": \"John Doe Updated\",\n    \"email\": \"john.updated@example.com\",\n    \"phone\": \"+251912345679\",\n    \"address\": \"456 Updated Street, Addis Ababa\",\n    \"updated_at\": \"2025-11-20T13:00:00Z\"\n  }\n}\n```"
+					}
+				},
+				{
+					"name": "Delete Customer",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"description": "JWT Bearer token for authentication (requires finance_manager role)"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"description": "Expected response format"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/customers/{{customer_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"customers",
+								"{{customer_id}}"
+							]
+						},
+						"description": "Permanently delete a customer record.\n\n**Authentication:** Required (Bearer token)\n**Authorization:** Requires `finance_manager` role\n\n**Path Parameters:**\n- `customer_id`: UUID of the customer to delete (from collection variable)\n\n**Response:** Returns success message.\n\n**Example Response:**\n```json\n{\n  \"status\": 200,\n  \"message\": \"Customer deleted successfully\"\n}\n```\n\n**Warning:** This action cannot be undone. Customer will be permanently removed from the database."
+					}
+				}
+			]
+		},
+		{
+			"name": "3. Contact Service - Vendors",
+			"item": [
+				{
+					"name": "List Vendors",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"description": "JWT Bearer token for authentication"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"description": "Expected response format"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/vendors?limit=10&offset=0",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"vendors"
+							],
+							"query": [
+								{
+									"key": "limit",
+									"value": "10"
+								},
+								{
+									"key": "offset",
+									"value": "0"
+								}
+							]
+						},
+						"description": "List all vendors with pagination."
+					}
+				},
+				{
+					"name": "Get Vendor by ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    pm.collectionVariables.set('vendor_id', response.data.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"description": "JWT Bearer token for authentication"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"description": "Expected response format"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/vendors/{{vendor_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"vendors",
+								"{{vendor_id}}"
+							]
+						},
+						"description": "Get vendor details by ID."
+					}
+				},
+				{
+					"name": "Create Vendor",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    const response = pm.response.json();",
+									"    pm.collectionVariables.set('vendor_id', response.data.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"description": "JWT Bearer token for authentication"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"description": "Expected response format"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"ABC Suppliers\",\n    \"email\": \"contact@abcsuppliers.com\",\n    \"phone\": \"+251955555555\",\n    \"address\": \"456 Business Avenue, Addis Ababa\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/vendors",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"vendors"
+							]
+						},
+						"description": "Create a new vendor.\n\n**Phone Format:** E.164 format (e.g., +251955555555)"
+					},
+					"response": [
+						{
+							"name": "Success - Vendor Created",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"name\": \"ABC Suppliers\",\n    \"email\": \"contact@abcsuppliers.com\",\n    \"phone\": \"+251955555555\",\n    \"address\": \"456 Business Avenue, Addis Ababa\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/vendors",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"vendors"
+									]
+								}
+							},
+							"status": "Created",
+							"code": 201,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": 201,\n    \"message\": \"Vendor created successfully\",\n    \"data\": {\n        \"id\": \"789e4567-e89b-12d3-a456-426614174000\",\n        \"name\": \"ABC Suppliers\",\n        \"email\": \"contact@abcsuppliers.com\",\n        \"phone\": \"+251955555555\",\n        \"address\": \"456 Business Avenue, Addis Ababa\",\n        \"created_at\": \"2025-11-20T12:00:00Z\",\n        \"updated_at\": \"2025-11-20T12:00:00Z\"\n    }\n}"
+						}
+					]
+				},
+				{
+					"name": "Update Vendor",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"description": "JWT Bearer token for authentication"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"description": "Expected response format"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"ABC Suppliers Updated\",\n    \"email\": \"updated@abcsuppliers.com\",\n    \"phone\": \"+251955555556\",\n    \"address\": \"789 Updated Avenue, Addis Ababa\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/vendors/{{vendor_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"vendors",
+								"{{vendor_id}}"
+							]
+						},
+						"description": "Update vendor details by ID."
+					}
+				},
+				{
+					"name": "Delete Vendor",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"description": "JWT Bearer token for authentication"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"description": "Expected response format"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/vendors/{{vendor_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"vendors",
+								"{{vendor_id}}"
+							]
+						},
+						"description": "Delete vendor by ID. Requires `finance_manager` role."
+					}
+				}
+			]
+		},
+		{
+			"name": "4. Inventory Service - Items",
+			"item": [
+				{
+					"name": "List Items",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"description": "JWT Bearer token for authentication"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"description": "Expected response format"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/items?limit=10&offset=0",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"items"
+							],
+							"query": [
+								{
+									"key": "limit",
+									"value": "10"
+								},
+								{
+									"key": "offset",
+									"value": "0"
+								}
+							]
+						},
+						"description": "List all items with pagination."
+					}
+				},
+				{
+					"name": "Get Item by ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    pm.collectionVariables.set('item_id', response.data.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"description": "JWT Bearer token for authentication"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"description": "Expected response format"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/items/{{item_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"items",
+								"{{item_id}}"
+							]
+						},
+						"description": "Get item details by ID."
+					}
+				},
+				{
+					"name": "Create Item",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    const response = pm.response.json();",
+									"    pm.collectionVariables.set('item_id', response.data.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"description": "JWT Bearer token for authentication"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"description": "Expected response format"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Laptop Computer\",\n    \"description\": \"High-performance laptop\",\n    \"sku\": \"LAPTOP-001\",\n    \"unit_price\": 45000.00\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/items",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"items"
+							]
+						},
+						"description": "Create a new item.\n\n**SKU:** Must be unique, will be converted to uppercase automatically."
+					},
+					"response": [
+						{
+							"name": "Success - Item Created",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"name\": \"Laptop Computer\",\n    \"description\": \"High-performance laptop\",\n    \"sku\": \"LAPTOP-001\",\n    \"unit_price\": 45000.00\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/items",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"items"
+									]
+								}
+							},
+							"status": "Created",
+							"code": 201,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": 201,\n    \"message\": \"Item created successfully\",\n    \"data\": {\n        \"id\": \"789e4567-e89b-12d3-a456-426614174000\",\n        \"name\": \"Laptop Computer\",\n        \"description\": \"High-performance laptop\",\n        \"sku\": \"LAPTOP-001\",\n        \"unit_price\": 45000.00,\n        \"created_at\": \"2025-11-20T12:00:00Z\",\n        \"updated_at\": \"2025-11-20T12:00:00Z\"\n    }\n}"
+						}
+					]
+				},
+				{
+					"name": "Update Item",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"description": "JWT Bearer token for authentication"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"description": "Expected response format"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Laptop Computer Updated\",\n    \"description\": \"Updated description\",\n    \"sku\": \"LAPTOP-001-UPDATED\",\n    \"unit_price\": 50000.00\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/items/{{item_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"items",
+								"{{item_id}}"
+							]
+						},
+						"description": "Update item details by ID."
+					}
+				},
+				{
+					"name": "Delete Item",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"description": "JWT Bearer token for authentication"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"description": "Expected response format"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/items/{{item_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"items",
+								"{{item_id}}"
+							]
+						},
+						"description": "Delete item by ID. Requires `finance_manager` role."
+					}
+				}
+			]
+		},
+		{
+			"name": "5. Inventory Service - Stock",
+			"item": [
+				{
+					"name": "Get Stock",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"description": "JWT Bearer token for authentication"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"description": "Expected response format"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/items/{{item_id}}/stock",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"items",
+								"{{item_id}}",
+								"stock"
+							]
+						},
+						"description": "Get stock information for an item."
+					},
+					"response": [
+						{
+							"name": "Success - Stock Retrieved",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/items/{{item_id}}/stock",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"items",
+										"{{item_id}}",
+										"stock"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": 200,\n    \"message\": \"Stock retrieved successfully\",\n    \"data\": {\n        \"id\": \"stock-uuid\",\n        \"item_id\": \"{{item_id}}\",\n        \"quantity\": 100,\n        \"updated_at\": \"2025-11-20T12:00:00Z\"\n    }\n}"
+						}
+					]
+				},
+				{
+					"name": "Adjust Stock",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"description": "JWT Bearer token for authentication"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"description": "Expected response format"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"quantity\": 50\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/items/{{item_id}}/stock",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"items",
+								"{{item_id}}",
+								"stock"
+							]
+						},
+						"description": "Adjust stock quantity for an item. Uses transaction for atomicity."
+					}
+				}
+			]
+		},
+		{
+			"name": "6. Sales Service",
+			"item": [
+				{
+					"name": "List Sales Orders",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"description": "JWT Bearer token for authentication"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"description": "Expected response format"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/sales/orders?limit=10&offset=0",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"sales",
+								"orders"
+							],
+							"query": [
+								{
+									"key": "limit",
+									"value": "10"
+								},
+								{
+									"key": "offset",
+									"value": "0"
+								}
+							]
+						},
+						"description": "List all sales orders with pagination."
+					}
+				},
+				{
+					"name": "Get Sales Order by ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    pm.collectionVariables.set('sales_order_id', response.data.order.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"description": "JWT Bearer token for authentication"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"description": "Expected response format"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/sales/orders/{{sales_order_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"sales",
+								"orders",
+								"{{sales_order_id}}"
+							]
+						},
+						"description": "Get sales order details by ID."
+					}
+				},
+				{
+					"name": "Create Sales Order",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    const response = pm.response.json();",
+									"    pm.collectionVariables.set('sales_order_id', response.data.order.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"description": "JWT Bearer token for authentication"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"description": "Expected response format"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"customer_id\": \"{{customer_id}}\",\n    \"items\": [\n        {\n            \"item_id\": \"{{item_id}}\",\n            \"quantity\": 2,\n            \"unit_price\": 45000.00\n        }\n    ]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/sales/orders",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"sales",
+								"orders"
+							]
+						},
+						"description": "Create a new sales order.\n\n**Validates:**\n- Customer exists (via Contact Service)\n- Items exist (via Inventory Service)\n- Calculates total amount automatically\n\n**Status:** Starts as `draft`"
+					},
+					"response": [
+						{
+							"name": "Success - Order Created",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"customer_id\": \"{{customer_id}}\",\n    \"items\": [\n        {\n            \"item_id\": \"{{item_id}}\",\n            \"quantity\": 2,\n            \"unit_price\": 45000.00\n        }\n    ]\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/sales/orders",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"sales",
+										"orders"
+									]
+								}
+							},
+							"status": "Created",
+							"code": 201,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": 201,\n    \"message\": \"Sales order created successfully\",\n    \"data\": {\n        \"order\": {\n            \"id\": \"order-uuid\",\n            \"customer_id\": \"{{customer_id}}\",\n            \"status\": \"draft\",\n            \"total_amount\": 90000.00,\n            \"created_at\": \"2025-11-20T12:00:00Z\",\n            \"updated_at\": \"2025-11-20T12:00:00Z\"\n        },\n        \"items\": [\n            {\n                \"id\": \"item-uuid\",\n                \"order_id\": \"order-uuid\",\n                \"item_id\": \"{{item_id}}\",\n                \"quantity\": 2,\n                \"unit_price\": 45000.00,\n                \"subtotal\": 90000.00\n            }\n        ]\n    }\n}"
+						}
+					]
+				},
+				{
+					"name": "Update Sales Order",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"description": "JWT Bearer token for authentication"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"description": "Expected response format"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"customer_id\": \"{{customer_id}}\",\n    \"items\": [\n        {\n            \"item_id\": \"{{item_id}}\",\n            \"quantity\": 3,\n            \"unit_price\": 45000.00\n        }\n    ]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/sales/orders/{{sales_order_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"sales",
+								"orders",
+								"{{sales_order_id}}"
+							]
+						},
+						"description": "Update sales order. Can only update orders with `draft` status."
+					}
+				},
+				{
+					"name": "Confirm Sales Order",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"description": "JWT Bearer token for authentication"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"description": "Request body content type"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"description": "Expected response format"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/sales/orders/{{sales_order_id}}/confirm",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"sales",
+								"orders",
+								"{{sales_order_id}}",
+								"confirm"
+							]
+						},
+						"description": "Confirm sales order.\n\n**Status Change:** `draft` \u2192 `confirmed`\n\n**Triggers:**\n- Publishes NATS event `sales.order.confirmed`\n- Inventory service decreases stock automatically"
+					}
+				},
+				{
+					"name": "Pay Sales Order",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"description": "JWT Bearer token for authentication"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"description": "Request body content type"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"description": "Expected response format"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/sales/orders/{{sales_order_id}}/pay",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"sales",
+								"orders",
+								"{{sales_order_id}}",
+								"pay"
+							]
+						},
+						"description": "Mark sales order as paid.\n\n**Status Change:** `confirmed` \u2192 `paid`\n\n**Requires:** `finance_manager` role"
+					}
+				}
+			]
+		},
+		{
+			"name": "7. Purchase Service",
+			"item": [
+				{
+					"name": "List Purchase Orders",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"description": "JWT Bearer token for authentication"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"description": "Expected response format"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/purchase/orders?limit=10&offset=0",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"purchase",
+								"orders"
+							],
+							"query": [
+								{
+									"key": "limit",
+									"value": "10"
+								},
+								{
+									"key": "offset",
+									"value": "0"
+								}
+							]
+						},
+						"description": "List all purchase orders with pagination."
+					}
+				},
+				{
+					"name": "Get Purchase Order by ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    pm.collectionVariables.set('purchase_order_id', response.data.order.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"description": "JWT Bearer token for authentication"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"description": "Expected response format"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/purchase/orders/{{purchase_order_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"purchase",
+								"orders",
+								"{{purchase_order_id}}"
+							]
+						},
+						"description": "Get purchase order details by ID."
+					}
+				},
+				{
+					"name": "Create Purchase Order",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    const response = pm.response.json();",
+									"    pm.collectionVariables.set('purchase_order_id', response.data.order.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"description": "JWT Bearer token for authentication"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"description": "Expected response format"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"vendor_id\": \"{{vendor_id}}\",\n    \"items\": [\n        {\n            \"item_id\": \"{{item_id}}\",\n            \"quantity\": 10,\n            \"unit_price\": 40000.00\n        }\n    ]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/purchase/orders",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"purchase",
+								"orders"
+							]
+						},
+						"description": "Create a new purchase order.\n\n**Validates:**\n- Vendor exists (via Contact Service)\n- Items exist (via Inventory Service)\n- Calculates total amount automatically\n\n**Status:** Starts as `draft`"
+					},
+					"response": [
+						{
+							"name": "Success - Order Created",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"vendor_id\": \"{{vendor_id}}\",\n    \"items\": [\n        {\n            \"item_id\": \"{{item_id}}\",\n            \"quantity\": 10,\n            \"unit_price\": 40000.00\n        }\n    ]\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/purchase/orders",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"purchase",
+										"orders"
+									]
+								}
+							},
+							"status": "Created",
+							"code": 201,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": 201,\n    \"message\": \"Purchase order created successfully\",\n    \"data\": {\n        \"order\": {\n            \"id\": \"order-uuid\",\n            \"vendor_id\": \"{{vendor_id}}\",\n            \"status\": \"draft\",\n            \"total_amount\": 400000.00,\n            \"created_at\": \"2025-11-20T12:00:00Z\",\n            \"updated_at\": \"2025-11-20T12:00:00Z\"\n        },\n        \"items\": [\n            {\n                \"id\": \"item-uuid\",\n                \"order_id\": \"order-uuid\",\n                \"item_id\": \"{{item_id}}\",\n                \"quantity\": 10,\n                \"unit_price\": 40000.00,\n                \"subtotal\": 400000.00\n            }\n        ]\n    }\n}"
+						}
+					]
+				},
+				{
+					"name": "Update Purchase Order",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"description": "JWT Bearer token for authentication"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"description": "Expected response format"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"vendor_id\": \"{{vendor_id}}\",\n    \"items\": [\n        {\n            \"item_id\": \"{{item_id}}\",\n            \"quantity\": 15,\n            \"unit_price\": 40000.00\n        }\n    ]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/purchase/orders/{{purchase_order_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"purchase",
+								"orders",
+								"{{purchase_order_id}}"
+							]
+						},
+						"description": "Update purchase order. Can only update orders with `draft` status."
+					}
+				},
+				{
+					"name": "Receive Purchase Order",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"description": "JWT Bearer token for authentication"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"description": "Request body content type"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"description": "Expected response format"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/purchase/orders/{{purchase_order_id}}/receive",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"purchase",
+								"orders",
+								"{{purchase_order_id}}",
+								"receive"
+							]
+						},
+						"description": "Receive purchase order.\n\n**Status Change:** `draft` \u2192 `received`\n\n**Triggers:**\n- Publishes NATS event `purchase.order.received`\n- Inventory service increases stock automatically"
+					}
+				},
+				{
+					"name": "Pay Purchase Order",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"description": "JWT Bearer token for authentication"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"description": "Request body content type"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"description": "Expected response format"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/purchase/orders/{{purchase_order_id}}/pay",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"purchase",
+								"orders",
+								"{{purchase_order_id}}",
+								"pay"
+							]
+						},
+						"description": "Mark purchase order as paid.\n\n**Status Change:** `received` \u2192 `paid`\n\n**Requires:** `finance_manager` role"
+					}
+				}
+			]
+		},
+		{
+			"name": "8. Health Check",
+			"item": [
+				{
+					"name": "Gateway Health",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/health",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"health"
+							]
+						},
+						"description": "Check gateway health status."
+					}
+				}
+			]
+		}
+	]
+}

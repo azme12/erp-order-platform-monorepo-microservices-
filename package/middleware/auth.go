@@ -74,7 +74,6 @@ func (m *AuthMiddleware) RequireRole(allowedRoles ...string) func(http.Handler) 
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ctx := r.Context()
 
-			// Allow service tokens to bypass role checks for inter-service communication
 			tokenType, _ := ctx.Value(tokenTypeKey).(string)
 			if tokenType == "service" {
 				next.ServeHTTP(w, r)

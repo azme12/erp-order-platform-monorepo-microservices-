@@ -78,7 +78,6 @@ func (s *Service) CreateOrder(ctx context.Context, req model.CreatePurchaseOrder
 		UpdatedAt:   time.Now(),
 	}
 
-	// Validate all items in parallel for better performance
 	type itemResult struct {
 		item     model.PurchaseOrderItem
 		subtotal float64
@@ -190,7 +189,6 @@ func (s *Service) UpdateOrder(ctx context.Context, id string, req model.UpdatePu
 		return model.PurchaseOrderWithItems{}, errors.ErrInternalServerError
 	}
 
-	// Validate all items in parallel for better performance
 	type itemResult struct {
 		item     model.PurchaseOrderItem
 		subtotal float64

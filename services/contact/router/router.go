@@ -20,7 +20,7 @@ func NewRouter(handler *httphandler.Handler, logger log.Logger, jwtSecret string
 	r := chi.NewRouter()
 
 	docs.SwaggerInfo.Schemes = []string{"http", "https"}
-	docs.SwaggerInfo.Host = "localhost:8000"
+	docs.SwaggerInfo.Host = "localhost:8001"
 
 	r.Use(chiMiddleware.RequestID)
 	r.Use(chiMiddleware.RealIP)

@@ -15,6 +15,12 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+const (
+	secondsPerHour     = 3600
+	resetTokenSize     = 32
+	resetTokenValidity = 1 * time.Hour
+)
+
 type Service struct {
 	storage      storage.Storage
 	jwtSecret    string
@@ -85,7 +91,6 @@ func (s *Service) Login(ctx context.Context, req model.LoginRequest) (model.Logi
 
 	user.PasswordHash = ""
 
-	const secondsPerHour = 3600
 	return model.LoginResponse{
 		AccessToken: token,
 		ExpiresIn:   s.userExpHours * secondsPerHour,
@@ -106,13 +111,13 @@ func (s *Service) ForgotPassword(ctx context.Context, req model.ForgotPasswordRe
 		return model.ForgotPasswordResponse{}, err
 	}
 
-	tokenBytes := make([]byte, 32)
+	tokenBytes := make([]byte, resetTokenSize)
 	if _, err := rand.Read(tokenBytes); err != nil {
 		return model.ForgotPasswordResponse{}, errors.ErrInternalServerError
 	}
 	resetToken := hex.EncodeToString(tokenBytes)
 
-	expiresAt := time.Now().Add(1 * time.Hour)
+	expiresAt := time.Now().Add(resetTokenValidity)
 
 	user.ResetToken = &resetToken
 	user.ResetTokenExpiresAt = &expiresAt
@@ -159,7 +164,6 @@ func (s *Service) ResetPassword(ctx context.Context, req model.ResetPasswordRequ
 }
 
 func (s *Service) GenerateServiceToken(ctx context.Context, req model.ServiceTokenRequest) (model.ServiceTokenResponse, error) {
-
 	expectedSecrets := map[string]string{
 		"sales":     s.jwtSecret + "_sales",
 		"purchase":  s.jwtSecret + "_purchase",
@@ -178,7 +182,6 @@ func (s *Service) GenerateServiceToken(ctx context.Context, req model.ServiceTok
 		return model.ServiceTokenResponse{}, errors.ErrInternalServerError
 	}
 
-	const secondsPerHour = 3600
 	return model.ServiceTokenResponse{
 		Token:     token,
 		ExpiresIn: serviceExpHours * secondsPerHour,

@@ -12,6 +12,10 @@ import (
 	"go.uber.org/zap"
 )
 
+const (
+	maxRequestBodySize = 1 << 20
+)
+
 type Handler struct {
 	service *authservice.Service
 	logger  log.Logger
@@ -38,16 +42,9 @@ func NewHandler(service *authservice.Service, logger log.Logger) *Handler {
 // @Router       /register [post]
 func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
 
 	var req model.RegisterRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response.SendErrorResponse(w, errors.ErrBadRequest)
-		return
-	}
-
-	if err := req.Validate(); err != nil {
-		response.SendErrorResponse(w, err)
+	if err := h.parseAndValidateRequest(w, r, &req); err != nil {
 		return
 	}
 
@@ -59,6 +56,22 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response.SendSuccessResponse(w, http.StatusCreated, "User registered successfully", user, nil)
+}
+
+func (h *Handler) parseAndValidateRequest(w http.ResponseWriter, r *http.Request, req interface{ Validate() error }) error {
+	r.Body = http.MaxBytesReader(w, r.Body, maxRequestBodySize)
+
+	if err := json.NewDecoder(r.Body).Decode(req); err != nil {
+		response.SendErrorResponse(w, errors.ErrBadRequest)
+		return err
+	}
+
+	if err := req.Validate(); err != nil {
+		response.SendErrorResponse(w, err)
+		return err
+	}
+
+	return nil
 }
 
 // Login godoc
@@ -75,16 +88,9 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 // @Router       /login [post]
 func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
 
 	var req model.LoginRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response.SendErrorResponse(w, errors.ErrBadRequest)
-		return
-	}
-
-	if err := req.Validate(); err != nil {
-		response.SendErrorResponse(w, err)
+	if err := h.parseAndValidateRequest(w, r, &req); err != nil {
 		return
 	}
 
@@ -112,16 +118,9 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 // @Router       /forgot-password [post]
 func (h *Handler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
 
 	var req model.ForgotPasswordRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response.SendErrorResponse(w, errors.ErrBadRequest)
-		return
-	}
-
-	if err := req.Validate(); err != nil {
-		response.SendErrorResponse(w, err)
+	if err := h.parseAndValidateRequest(w, r, &req); err != nil {
 		return
 	}
 
@@ -149,16 +148,9 @@ func (h *Handler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 // @Router       /reset-password [post]
 func (h *Handler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
 
 	var req model.ResetPasswordRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response.SendErrorResponse(w, errors.ErrBadRequest)
-		return
-	}
-
-	if err := req.Validate(); err != nil {
-		response.SendErrorResponse(w, err)
+	if err := h.parseAndValidateRequest(w, r, &req); err != nil {
 		return
 	}
 
@@ -185,16 +177,9 @@ func (h *Handler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 // @Router       /service-token [post]
 func (h *Handler) GenerateServiceToken(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
 
 	var req model.ServiceTokenRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response.SendErrorResponse(w, errors.ErrBadRequest)
-		return
-	}
-
-	if err := req.Validate(); err != nil {
-		response.SendErrorResponse(w, err)
+	if err := h.parseAndValidateRequest(w, r, &req); err != nil {
 		return
 	}
 

@@ -5,14 +5,11 @@ WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 
-
 COPY services/auth ./services/auth
 COPY package ./package
 
-
 WORKDIR /app/services/auth
 RUN CGO_ENABLED=0 GOOS=linux go build -o /app/auth ./cmd
-
 
 FROM alpine:latest
 RUN apk --no-cache add ca-certificates

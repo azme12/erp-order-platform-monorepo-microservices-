@@ -24,6 +24,22 @@ type Router struct {
 func NewRouter(cfg *config.Config, logger log.Logger) http.Handler {
 	r := chi.NewRouter()
 
+	r.Use(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Access-Control-Allow-Origin", "*")
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+			w.Header().Set("Access-Control-Max-Age", "3600")
+
+			if r.Method == "OPTIONS" {
+				w.WriteHeader(http.StatusOK)
+				return
+			}
+
+			next.ServeHTTP(w, r)
+		})
+	})
+
 	r.Use(chiMiddleware.RequestID)
 	r.Use(chiMiddleware.RealIP)
 	r.Use(chiMiddleware.Logger)
@@ -43,6 +59,14 @@ func NewRouter(cfg *config.Config, logger log.Logger) http.Handler {
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("OK"))
+	})
+
+	r.Route("/", func(r chi.Router) {
+		r.Post("/register", router.forwardToService("auth", "/register"))
+		r.Post("/login", router.forwardToService("auth", "/login"))
+		r.Post("/forgot-password", router.forwardToService("auth", "/forgot-password"))
+		r.Post("/reset-password", router.forwardToService("auth", "/reset-password"))
+		r.Post("/service-token", router.forwardToService("auth", "/service-token"))
 	})
 
 	r.Route("/api", func(r chi.Router) {
@@ -127,8 +151,6 @@ func (rt *Router) forwardToService(serviceName string, path string) http.Handler
 
 		targetURL := baseURL + path
 
-		// Replace all path parameters dynamically
-		// Support multiple parameter names: id, item_id, order_id, etc.
 		ctx := r.Context()
 		if strings.Contains(path, "{id}") {
 			id := chi.URLParamFromCtx(ctx, "id")
@@ -142,7 +164,6 @@ func (rt *Router) forwardToService(serviceName string, path string) http.Handler
 			orderID := chi.URLParamFromCtx(ctx, "order_id")
 			targetURL = strings.ReplaceAll(targetURL, "{order_id}", orderID)
 		}
-		// Generic replacement for any remaining {param} patterns
 		for {
 			start := strings.Index(targetURL, "{")
 			if start == -1 {

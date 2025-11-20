@@ -14,59 +14,48 @@ const (
 	OrderStatusPaid      OrderStatus = "Paid"
 )
 
-// String returns the string representation of OrderStatus
 func (s OrderStatus) String() string {
 	return string(s)
 }
 
-// IsValid checks if the OrderStatus is valid
 func (s OrderStatus) IsValid() bool {
 	return s == OrderStatusDraft || s == OrderStatusConfirmed || s == OrderStatusPaid
 }
 
-// IsDraft checks if the order is in draft status
 func (s OrderStatus) IsDraft() bool {
 	return s == OrderStatusDraft
 }
 
-// IsConfirmed checks if the order is confirmed
 func (s OrderStatus) IsConfirmed() bool {
 	return s == OrderStatusConfirmed
 }
 
-// IsPaid checks if the order is paid
 func (s OrderStatus) IsPaid() bool {
 	return s == OrderStatusPaid
 }
 
 type SalesOrder struct {
-	// Identifiers
-	ID         uuid.UUID `json:"id" db:"id"`
-	CustomerID uuid.UUID `json:"customer_id" db:"customer_id"`
+	ID         uuid.UUID `json:"id" db:"id" example:"550e8400-e29b-41d4-a716-446655440000"`
+	CustomerID uuid.UUID `json:"customer_id" db:"customer_id" example:"550e8400-e29b-41d4-a716-446655440001"`
 
-	// Business fields
-	Status      OrderStatus `json:"status" db:"status"`
-	TotalAmount float64     `json:"total_amount" db:"total_amount"`
+	Status      OrderStatus `json:"status" db:"status" example:"Draft"`
+	TotalAmount float64     `json:"total_amount" db:"total_amount" example:"2599.98"`
 
-	// Timestamps
-	CreatedAt time.Time `json:"created_at" db:"created_at"`
-	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
+	CreatedAt time.Time `json:"created_at" db:"created_at" example:"2025-11-20T12:00:00Z"`
+	UpdatedAt time.Time `json:"updated_at" db:"updated_at" example:"2025-11-20T12:00:00Z"`
 }
 
 type OrderItem struct {
-	// Identifiers
-	ID      uuid.UUID `json:"id" db:"id"`
-	OrderID uuid.UUID `json:"order_id" db:"order_id"`
-	ItemID  uuid.UUID `json:"item_id" db:"item_id"`
+	ID      uuid.UUID `json:"id" db:"id" example:"550e8400-e29b-41d4-a716-446655440002"`
+	OrderID uuid.UUID `json:"order_id" db:"order_id" example:"550e8400-e29b-41d4-a716-446655440000"`
+	ItemID  uuid.UUID `json:"item_id" db:"item_id" example:"550e8400-e29b-41d4-a716-446655440003"`
 
-	// Business fields
-	Quantity  int     `json:"quantity" db:"quantity"`
-	UnitPrice float64 `json:"unit_price" db:"unit_price"`
-	Subtotal  float64 `json:"subtotal" db:"subtotal"`
+	Quantity  int     `json:"quantity" db:"quantity" example:"2"`
+	UnitPrice float64 `json:"unit_price" db:"unit_price" example:"1299.99"`
+	Subtotal  float64 `json:"subtotal" db:"subtotal" example:"2599.98"`
 
-	// Timestamps
-	CreatedAt time.Time `json:"created_at" db:"created_at"`
-	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
+	CreatedAt time.Time `json:"created_at" db:"created_at" example:"2025-11-20T12:00:00Z"`
+	UpdatedAt time.Time `json:"updated_at" db:"updated_at" example:"2025-11-20T12:00:00Z"`
 }
 
 type SalesOrderWithItems struct {
@@ -75,13 +64,13 @@ type SalesOrderWithItems struct {
 }
 
 type CreateOrderRequest struct {
-	CustomerID uuid.UUID                `json:"customer_id"`
+	CustomerID uuid.UUID                `json:"customer_id" example:"550e8400-e29b-41d4-a716-446655440001"`
 	Items      []CreateOrderItemRequest `json:"items"`
 }
 
 type CreateOrderItemRequest struct {
-	ItemID   uuid.UUID `json:"item_id"`
-	Quantity int       `json:"quantity"`
+	ItemID   uuid.UUID `json:"item_id" example:"550e8400-e29b-41d4-a716-446655440003"`
+	Quantity int       `json:"quantity" example:"2"`
 }
 
 type UpdateOrderRequest struct {

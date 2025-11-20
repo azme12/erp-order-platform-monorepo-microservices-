@@ -78,7 +78,6 @@ func (s *Service) CreateOrder(ctx context.Context, req model.CreateOrderRequest)
 		UpdatedAt:   time.Now(),
 	}
 
-	// Validate all items in parallel for better performance
 	type itemResult struct {
 		item     model.OrderItem
 		subtotal float64

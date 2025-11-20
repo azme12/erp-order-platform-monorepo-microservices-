@@ -6,6 +6,8 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 COPY services/purchase ./services/purchase
+COPY services/contact ./services/contact
+COPY services/inventory ./services/inventory
 COPY package ./package
 
 WORKDIR /app/services/purchase

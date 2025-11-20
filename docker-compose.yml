@@ -97,10 +97,11 @@ services:
       - "8222:8222"
     command: ["-m", "8222"]
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8222/healthz"]
+      test: ["CMD", "sh", "-c", "nc -z localhost 4222 || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 10s
 
   auth:
     build:
@@ -147,7 +148,7 @@ services:
       db-contact:
         condition: service_healthy
       nats:
-        condition: service_healthy
+        condition: service_started
 
   inventory:
     build:
@@ -171,7 +172,7 @@ services:
       db-inventory:
         condition: service_healthy
       nats:
-        condition: service_healthy
+        condition: service_started
 
   sales:
     build:
@@ -198,7 +199,7 @@ services:
       db-sales:
         condition: service_healthy
       nats:
-        condition: service_healthy
+        condition: service_started
       contact:
         condition: service_started
       inventory:
@@ -229,7 +230,7 @@ services:
       db-purchase:
         condition: service_healthy
       nats:
-        condition: service_healthy
+        condition: service_started
       contact:
         condition: service_started
       inventory:
@@ -243,9 +244,9 @@ services:
     env_file:
       - .env
     ports:
-      - "${GATEWAY_PORT:-8000}:${GATEWAY_PORT:-8000}"
+      - "${GATEWAY_PORT:-8000}:8000"
     environment:
-      - PORT=${GATEWAY_PORT:-8000}
+      - PORT=8000
       - JWT_SECRET=${JWT_SECRET}
       - AUTH_SERVICE_URL=${AUTH_SERVICE_URL:-http://auth:8000}
       - CONTACT_SERVICE_URL=${CONTACT_SERVICE_URL:-http://contact:8000}

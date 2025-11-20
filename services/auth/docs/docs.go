@@ -9,7 +9,16 @@ const docTemplate = `{
     "info": {
         "description": "{{escape .Description}}",
         "title": "{{.Title}}",
-        "contact": {},
+        "termsOfService": "http://swagger.io/terms/",
+        "contact": {
+            "name": "API Support",
+            "url": "http://www.example.com/support",
+            "email": "support@example.com"
+        },
+        "license": {
+            "name": "Apache 2.0",
+            "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+        },
         "version": "{{.Version}}"
     },
     "host": "{{.Host}}",
@@ -371,7 +380,8 @@ const docTemplate = `{
             ],
             "properties": {
                 "email": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "user@example.com"
                 }
             }
         },
@@ -379,10 +389,12 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "message": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "If the email exists, a password reset link has been sent"
                 },
                 "reset_token": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6"
                 }
             }
         },
@@ -394,10 +406,12 @@ const docTemplate = `{
             ],
             "properties": {
                 "email": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "user@example.com"
                 },
                 "password": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "password123"
                 }
             }
         },
@@ -405,10 +419,12 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "access_token": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiNTUwZTg0MDAtZTI5Yi00MWQ0LWE3MTYtNDQ2NjU1NDQwMDAwIiwiZW1haWwiOiJ1c2VyQGV4YW1wbGUuY29tIiwicm9sZSI6ImZpbmFuY2VfbWFuYWdlciIsInR5cGUiOiJ1c2VyIiwiZXhwIjoxNzYzNzI5NjUyLCJpYXQiOjE3NjM2NDMyNTJ9.dxKJuAaIxwQXZa0of9wUREEHsZupFoZ4kWfjnlRrP10"
                 },
                 "expires_in": {
-                    "type": "integer"
+                    "type": "integer",
+                    "example": 86400
                 },
                 "user": {
                     "$ref": "#/definitions/model.User"
@@ -424,18 +440,21 @@ const docTemplate = `{
             ],
             "properties": {
                 "email": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "user@example.com"
                 },
                 "password": {
                     "type": "string",
-                    "minLength": 6
+                    "minLength": 6,
+                    "example": "password123"
                 },
                 "role": {
                     "type": "string",
                     "enum": [
                         "inventory_manager",
                         "finance_manager"
-                    ]
+                    ],
+                    "example": "finance_manager"
                 }
             }
         },
@@ -448,10 +467,12 @@ const docTemplate = `{
             "properties": {
                 "new_password": {
                     "type": "string",
-                    "minLength": 6
+                    "minLength": 6,
+                    "example": "newpassword123"
                 },
                 "reset_token": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6"
                 }
             }
         },
@@ -463,10 +484,12 @@ const docTemplate = `{
             ],
             "properties": {
                 "service_name": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "sales"
                 },
                 "service_secret": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "your-secret-key-change-in-production_sales"
                 }
             }
         },
@@ -474,10 +497,12 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "expires_in": {
-                    "type": "integer"
+                    "type": "integer",
+                    "example": 3600
                 },
                 "token": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoic2FsZXMiLCJlbWFpbCI6InNhbGVzQHNlcnZpY2UiLCJyb2xlIjoic2VydmljZSIsInR5cGUiOiJzZXJ2aWNlIiwiZXhwIjoxNzYzNjQ2ODUzLCJpYXQiOjE3NjM2NDMyNTN9.hx7y9wLIVgGoJOhHiSIy7TY91zz6is-NeWeggF-wh1I"
                 }
             }
         },
@@ -485,21 +510,24 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "created_at": {
-                    "description": "Timestamps",
-                    "type": "string"
+                    "type": "string",
+                    "example": "2025-11-20T12:00:00Z"
                 },
                 "email": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "user@example.com"
                 },
                 "id": {
-                    "description": "Identifiers",
-                    "type": "string"
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
                 },
                 "role": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "finance_manager"
                 },
                 "updated_at": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "2025-11-20T12:00:00Z"
                 }
             }
         },
@@ -576,17 +604,25 @@ const docTemplate = `{
                 }
             }
         }
+    },
+    "securityDefinitions": {
+        "BearerAuth": {
+            "description": "Type \"Bearer\" followed by a space and JWT token. Example: \"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\"",
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
+        }
     }
 }`
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
-	Version:          "",
-	Host:             "",
-	BasePath:         "",
+	Version:          "1.0",
+	Host:             "localhost:8002",
+	BasePath:         "/",
 	Schemes:          []string{},
-	Title:            "",
-	Description:      "",
+	Title:            "Auth Service API",
+	Description:      "Authentication and Authorization Service for Microservices Challenge\nProvides user registration, login, password reset, and inter-service token generation",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",

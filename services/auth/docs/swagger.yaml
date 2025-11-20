@@ -1,3 +1,4 @@
+basePath: /
 definitions:
   errors.ErrorType:
     enum:
@@ -38,6 +39,7 @@ definitions:
   model.ForgotPasswordRequest:
     properties:
       email:
+        example: user@example.com
         type: string
     required:
     - email
@@ -45,15 +47,19 @@ definitions:
   model.ForgotPasswordResponse:
     properties:
       message:
+        example: If the email exists, a password reset link has been sent
         type: string
       reset_token:
+        example: a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6
         type: string
     type: object
   model.LoginRequest:
     properties:
       email:
+        example: user@example.com
         type: string
       password:
+        example: password123
         type: string
     required:
     - email
@@ -62,8 +68,10 @@ definitions:
   model.LoginResponse:
     properties:
       access_token:
+        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiNTUwZTg0MDAtZTI5Yi00MWQ0LWE3MTYtNDQ2NjU1NDQwMDAwIiwiZW1haWwiOiJ1c2VyQGV4YW1wbGUuY29tIiwicm9sZSI6ImZpbmFuY2VfbWFuYWdlciIsInR5cGUiOiJ1c2VyIiwiZXhwIjoxNzYzNzI5NjUyLCJpYXQiOjE3NjM2NDMyNTJ9.dxKJuAaIxwQXZa0of9wUREEHsZupFoZ4kWfjnlRrP10
         type: string
       expires_in:
+        example: 86400
         type: integer
       user:
         $ref: '#/definitions/model.User'
@@ -71,14 +79,17 @@ definitions:
   model.RegisterRequest:
     properties:
       email:
+        example: user@example.com
         type: string
       password:
+        example: password123
         minLength: 6
         type: string
       role:
         enum:
         - inventory_manager
         - finance_manager
+        example: finance_manager
         type: string
     required:
     - email
@@ -88,9 +99,11 @@ definitions:
   model.ResetPasswordRequest:
     properties:
       new_password:
+        example: newpassword123
         minLength: 6
         type: string
       reset_token:
+        example: a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6
         type: string
     required:
     - new_password
@@ -99,8 +112,10 @@ definitions:
   model.ServiceTokenRequest:
     properties:
       service_name:
+        example: sales
         type: string
       service_secret:
+        example: your-secret-key-change-in-production_sales
         type: string
     required:
     - service_name
@@ -109,23 +124,28 @@ definitions:
   model.ServiceTokenResponse:
     properties:
       expires_in:
+        example: 3600
         type: integer
       token:
+        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoic2FsZXMiLCJlbWFpbCI6InNhbGVzQHNlcnZpY2UiLCJyb2xlIjoic2VydmljZSIsInR5cGUiOiJzZXJ2aWNlIiwiZXhwIjoxNzYzNjQ2ODUzLCJpYXQiOjE3NjM2NDMyNTN9.hx7y9wLIVgGoJOhHiSIy7TY91zz6is-NeWeggF-wh1I
         type: string
     type: object
   model.User:
     properties:
       created_at:
-        description: Timestamps
+        example: "2025-11-20T12:00:00Z"
         type: string
       email:
+        example: user@example.com
         type: string
       id:
-        description: Identifiers
+        example: 550e8400-e29b-41d4-a716-446655440000
         type: string
       role:
+        example: finance_manager
         type: string
       updated_at:
+        example: "2025-11-20T12:00:00Z"
         type: string
     type: object
   response.FieldError:
@@ -173,8 +193,21 @@ definitions:
       error:
         $ref: '#/definitions/response.ValidationErrorDetail'
     type: object
+host: localhost:8002
 info:
-  contact: {}
+  contact:
+    email: support@example.com
+    name: API Support
+    url: http://www.example.com/support
+  description: |-
+    Authentication and Authorization Service for Microservices Challenge
+    Provides user registration, login, password reset, and inter-service token generation
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: Auth Service API
+  version: "1.0"
 paths:
   /forgot-password:
     post:
@@ -366,4 +399,11 @@ paths:
       summary: Generate service token
       tags:
       - auth
+securityDefinitions:
+  BearerAuth:
+    description: 'Type "Bearer" followed by a space and JWT token. Example: "Bearer
+      eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."'
+    in: header
+    name: Authorization
+    type: apiKey
 swagger: "2.0"

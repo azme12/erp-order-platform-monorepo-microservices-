@@ -17,7 +17,7 @@ func NewRouter(handler *httphandler.Handler, _ log.Logger) http.Handler {
 	r := chi.NewRouter()
 
 	docs.SwaggerInfo.Schemes = []string{"http", "https"}
-	docs.SwaggerInfo.Host = "localhost:8000"
+	docs.SwaggerInfo.Host = "localhost:8002"
 
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)

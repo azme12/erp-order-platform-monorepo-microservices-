@@ -46,7 +46,6 @@ func (c *BaseClient) DoRequestWithRetry(ctx context.Context, method, path string
 	var lastErr error
 	for attempt := 0; attempt < maxRetries; attempt++ {
 		if attempt > 0 {
-			// Exponential backoff: 100ms, 200ms, 400ms
 			backoff := time.Duration(attempt) * 100 * time.Millisecond
 			select {
 			case <-ctx.Done():
@@ -71,7 +70,6 @@ func (c *BaseClient) DoRequestWithRetry(ctx context.Context, method, path string
 
 		resp, err := c.client.Do(req)
 		if err == nil {
-			// Success - but check if it's a retryable error status
 			if resp.StatusCode >= 500 && resp.StatusCode < 600 && attempt < maxRetries-1 {
 				resp.Body.Close()
 				lastErr = fmt.Errorf("server error %d, retrying", resp.StatusCode)
@@ -81,7 +79,6 @@ func (c *BaseClient) DoRequestWithRetry(ctx context.Context, method, path string
 		}
 
 		lastErr = err
-		// Don't retry on context cancellation or timeout
 		if err == context.Canceled || err == context.DeadlineExceeded {
 			return nil, err
 		}

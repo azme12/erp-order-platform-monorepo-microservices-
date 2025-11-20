@@ -1,3 +1,19 @@
+// @title           Sales Service API
+// @version         1.0
+// @description     Sales Order Management Service for Microservices Challenge
+// @description     Provides sales order management (CRUD operations, confirm, pay)
+// @termsOfService  http://swagger.io/terms/
+// @contact.name   API Support
+// @contact.url    http://www.example.com/support
+// @contact.email  support@example.com
+// @license.name  Apache 2.0
+// @license.url   http://www.apache.org/licenses/LICENSE-2.0.html
+// @host      localhost:8004
+// @BasePath  /
+// @securityDefinitions.apiKey BearerAuth
+// @in header
+// @name Authorization
+// @description Type "Bearer" followed by a space and JWT token. Example: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 package main
 
 import (

@@ -11,66 +11,66 @@ It focuses on **architecture, service communication, and security design** — n
 
 Build a small, microservice ecosystem that represents a subset of a bigger system:
 
-- **Contacts Service** → manages Customers & Vendors  
-- **Inventory Service** → manages Items & Stock  
-- **Sales Service** → manages Customer Sales Orders  
-- **Purchase Service** → manages Vendor Purchase Orders  
-- **Auth Service** → handles Authentication & Authorization  
-- **API Gateway** → routes and secures requests between clients and internal services  
+1. **Contacts Service** → manages Customers & Vendors
+2. **Inventory Service** → manages Items & Stock
+3. **Sales Service** → manages Customer Sales Orders
+4. **Purchase Service** → manages Vendor Purchase Orders
+5. **Auth Service** → handles Authentication & Authorization
+6. **API Gateway** → routes and secures requests between clients and internal services
 
 You are expected to demonstrate:
-- Sound architectural design choices
-- Service isolation and inter-service communication
-- Proper security and RBAC
-- Working deployment using Docker
+1. Sound architectural design choices
+2. Service isolation and inter-service communication
+3. Proper security and RBAC
+4. Working deployment using Docker
 
 ---
 
 ## 🧠 Functional Overview
 
 ### **1. Contact Service**
-- Manage `Customer` and `Vendor` entities (CRUD)
-- Expose REST API: `/customers`, `/vendors`
-- Emit events on `created` or `updated` actions
+1. Manage `Customer` and `Vendor` entities (CRUD)
+2. Expose REST API: `/customers`, `/vendors`
+3. Emit events on `created` or `updated` actions
 
 ### **2. Inventory Service**
-- Manage `Item` and `Stock`
-- Subscribe to events from:
-  - Sales Service (`sales.order.confirmed`) → Decrease stock
-  - Purchase Service (`purchase.order.received`) → Increase stock
+1. Manage `Item` and `Stock`
+2. Subscribe to events from:
+   - Sales Service (`sales.order.confirmed`) → Decrease stock
+   - Purchase Service (`purchase.order.received`) → Increase stock
 
 ### **3. Sales Service**
-- Manage Sales Orders linked to Customers
-- Confirming an order emits `sales.order.confirmed` event
-- Status: `Draft`, `Confirmed`, `Paid`
+1. Manage Sales Orders linked to Customers
+2. Confirming an order emits `sales.order.confirmed` event
+3. Status: `Draft`, `Confirmed`, `Paid`
 
 ### **4. Purchase Service**
-- Manage Purchase Orders linked to Vendors
-- Receiving an order emits `purchase.order.received` event
-- Status: `Draft`, `Received`, `Paid`
+1. Manage Purchase Orders linked to Vendors
+2. Receiving an order emits `purchase.order.received` event
+3. Status: `Draft`, `Received`, `Paid`
 
 ### **5. Auth Service**
-- JWT-based Authentication and Authorization
-- Support at least two roles:
-  - `inventory_manager`
-  - `finance_manager`
-- Validate JWTs issued to users and inter-service tokens
+1. JWT-based Authentication and Authorization
+2. Support at least two roles:
+   - `inventory_manager`
+   - `finance_manager`
+3. Validate JWTs issued to users and inter-service tokens
 
 ### **6. API Gateway**
-- Routes requests to microservices
-- Validates JWTs
+1. Routes requests to microservices
+2. Validates JWTs
 
 ---
 
 ## 🧱 Architecture Requirements
 
 Each service must:
-- Run independently (own Docker container)
-- Have its own database (Postgres or SQLite)
-- Use REST APIs for synchronous communication
-- Use a message broker (RabbitMQ, NATS, or in-memory pub/sub, or your choice of technology) for async communication, for interservice communication
-- Implement role-based authorization on key endpoints
-- Be documented with OpenAPI/Swagger
+1. Run independently (own Docker container)
+2. Have its own database (Postgres or SQLite)
+3. Use REST APIs for synchronous communication
+4. Use a message broker (RabbitMQ, NATS, or in-memory pub/sub, or your choice of technology) for async communication, for interservice communication
+5. Implement role-based authorization on key endpoints
+6. Be documented with OpenAPI/Swagger
 
 
 
@@ -91,11 +91,11 @@ microservice-challenge/
 
 ## 🔁 Inter-Service Communication
 
-- **Sync Call Example:**  
-  Sales Service → Contact Service (GET `/customers/{id}`) to validate customer.
+1. **Sync Call Example:**  
+   Sales Service → Contact Service (GET `/customers/{id}`) to validate customer.
 
-- **Async Event Example:**  
-  Sales Service publishes `sales.order.confirmed` → Inventory Service subscribes → decreases item stock.
+2. **Async Event Example:**  
+   Sales Service publishes `sales.order.confirmed` → Inventory Service subscribes → decreases item stock.
 
 ---
 
@@ -147,20 +147,20 @@ flowchart LR
 
 ## 3️⃣ Example Flow
 
-- Create a Vendor via Contact Service
-- Create a Purchase Order → triggers event → Inventory stock increases
-- Create a Customer via Contact Service
-- Create a Sales Order → triggers event → Inventory stock decreases
+1. Create a Vendor via Contact Service
+2. Create a Purchase Order → triggers event → Inventory stock increases
+3. Create a Customer via Contact Service
+4. Create a Sales Order → triggers event → Inventory stock decreases
 
 ## 📦 Submission Instructions
 
 Push your complete solution to this GitHub repository
 
 Include:
-- Source code
-- Architecture diagram
-- Setup guide
-- Example API usage (with sample curl or Postman)
+1. Source code
+2. Architecture diagram
+3. Setup guide
+4. Example API usage (with sample curl or Postman)
 
 Add your name and contact in the README header
 

@@ -25,18 +25,15 @@ func RunMigrations(ctx context.Context, db *sql.DB, migrationsDir string) error 
 		return fmt.Errorf("failed to load migrations: %w", err)
 	}
 
-	// Create migrations table if it doesn't exist
 	if err := createMigrationsTable(ctx, db); err != nil {
 		return fmt.Errorf("failed to create migrations table: %w", err)
 	}
 
-	// Get applied migrations
 	applied, err := getAppliedMigrations(ctx, db)
 	if err != nil {
 		return fmt.Errorf("failed to get applied migrations: %w", err)
 	}
 
-	// Apply pending migrations
 	for _, migration := range migrations {
 		if _, exists := applied[migration.Version]; exists {
 			continue
@@ -68,7 +65,6 @@ func loadMigrations(dir string) ([]Migration, error) {
 			continue
 		}
 
-		// Extract version from filename (e.g., "000001_create_table.up.sql" -> 1)
 		var version int
 		var direction string
 		if strings.HasSuffix(name, ".up.sql") {
@@ -108,7 +104,7 @@ func loadMigrations(dir string) ([]Migration, error) {
 	result := make([]Migration, 0, len(migrations))
 	for _, m := range migrations {
 		if m.UpSQL == "" {
-			continue // Skip if no up migration
+			continue
 		}
 		result = append(result, *m)
 	}
@@ -157,12 +153,10 @@ func applyMigration(ctx context.Context, db *sql.DB, migration Migration) error 
 	}
 	defer tx.Rollback()
 
-	// Execute migration SQL
 	if _, err := tx.ExecContext(ctx, migration.UpSQL); err != nil {
 		return fmt.Errorf("failed to execute migration SQL: %w", err)
 	}
 
-	// Record migration
 	if _, err := tx.ExecContext(ctx, "INSERT INTO schema_migrations (version) VALUES ($1)", migration.Version); err != nil {
 		return fmt.Errorf("failed to record migration: %w", err)
 	}
