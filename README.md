@@ -1140,28 +1140,3 @@ curl -X GET http://localhost:8000/api/items/{item_id}/stock \
   -H "Authorization: Bearer $TOKEN"
 # Should show quantity: 30 (50 - 20)
 ```
-
----
-
-## Architecture & Implementation Details
-
-### Code Quality
-
-1. **Type-Safe SQL** - All database queries generated using `sqlc`
-2. **Consistent Patterns** - Standardized code structure across all services
-3. **Error Handling** - Comprehensive error handling with proper HTTP status codes
-4. **Transaction Management** - Proper database transactions for atomic operations
-5. **Concurrent Processing** - Efficient parallel operations for order validation
-6. **Security** - JWT authentication, password hashing, input validation
-
-### Architecture Decisions
-
-1. **Database Per Service** - Complete service isolation
-2. **sqlc for Type Safety** - Eliminates SQL injection risks
-3. **NATS for Events** - Lightweight, high-performance message broker
-4. **API Gateway Pattern** - Single entry point with centralized authentication
-5. **Event-Driven Stock Updates** - Decoupled inventory updates
-6. **Parallel Validation** - Improved performance for order creation
-
----
-
