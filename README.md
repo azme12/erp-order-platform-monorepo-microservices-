@@ -447,20 +447,20 @@ graph TB
     Purchase -->|Publish Event<br/>purchase.order.received| NATS
     NATS -->|Subscribe & Process<br/>Update Stock| Inventory
     
-    %% Styling
-    style Gateway fill:#1a1a1a,stroke:#00d4ff,stroke-width:3px,color:#ffffff
-    style Auth fill:#4a90e2,stroke:#2c5aa0,stroke-width:2px,color:#ffffff
-    style Contact fill:#50c878,stroke:#2d8659,stroke-width:2px,color:#ffffff
-    style Inventory fill:#ff6b6b,stroke:#c92a2a,stroke-width:2px,color:#ffffff
-    style Sales fill:#ffa500,stroke:#cc8500,stroke-width:2px,color:#ffffff
-    style Purchase fill:#9b59b6,stroke:#6c3483,stroke-width:2px,color:#ffffff
-    style NATS fill:#1a1a1a,stroke:#00d4ff,stroke-width:2px,color:#ffffff
-    style AuthDB fill:#e8f4f8,stroke:#4a90e2,stroke-width:2px
-    style ContactDB fill:#e8f8e8,stroke:#50c878,stroke-width:2px
-    style InventoryDB fill:#ffe8e8,stroke:#ff6b6b,stroke-width:2px
-    style SalesDB fill:#fff4e8,stroke:#ffa500,stroke-width:2px
-    style PurchaseDB fill:#f4e8ff,stroke:#9b59b6,stroke-width:2px
-    style Client fill:#f0f0f0,stroke:#333,stroke-width:2px
+    %% Black and White Styling
+    style Gateway fill:#000000,stroke:#000000,stroke-width:4px,color:#ffffff
+    style Auth fill:#ffffff,stroke:#000000,stroke-width:2px,color:#000000
+    style Contact fill:#ffffff,stroke:#000000,stroke-width:2px,color:#000000
+    style Inventory fill:#ffffff,stroke:#000000,stroke-width:2px,color:#000000
+    style Sales fill:#ffffff,stroke:#000000,stroke-width:2px,color:#000000
+    style Purchase fill:#ffffff,stroke:#000000,stroke-width:2px,color:#000000
+    style NATS fill:#000000,stroke:#000000,stroke-width:3px,color:#ffffff
+    style AuthDB fill:#f5f5f5,stroke:#000000,stroke-width:2px,color:#000000
+    style ContactDB fill:#f5f5f5,stroke:#000000,stroke-width:2px,color:#000000
+    style InventoryDB fill:#f5f5f5,stroke:#000000,stroke-width:2px,color:#000000
+    style SalesDB fill:#f5f5f5,stroke:#000000,stroke-width:2px,color:#000000
+    style PurchaseDB fill:#f5f5f5,stroke:#000000,stroke-width:2px,color:#000000
+    style Client fill:#ffffff,stroke:#000000,stroke-width:2px,color:#000000
 ```
 
 ### Architecture Flow Explanation
