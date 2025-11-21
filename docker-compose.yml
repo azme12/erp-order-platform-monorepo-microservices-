@@ -1,0 +1,269 @@
+services:
+
+  db-auth:
+    image: postgres:16.10
+    container_name: db-auth
+    environment:
+      POSTGRES_DB: auth
+      POSTGRES_USER: ${DB_USER:-microservice}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_auth_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-microservice}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+
+  db-contact:
+    image: postgres:16.10
+    container_name: db-contact
+    environment:
+      POSTGRES_DB: contact
+      POSTGRES_USER: ${DB_USER:-microservice}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "5433:5432"
+    volumes:
+      - db_contact_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-microservice}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+
+  db-inventory:
+    image: postgres:16.10
+    container_name: db-inventory
+    environment:
+      POSTGRES_DB: inventory
+      POSTGRES_USER: ${DB_USER:-microservice}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "5434:5432"
+    volumes:
+      - db_inventory_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-microservice}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+
+  db-sales:
+    image: postgres:16.10
+    container_name: db-sales
+    environment:
+      POSTGRES_DB: sales
+      POSTGRES_USER: ${DB_USER:-microservice}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "5435:5432"
+    volumes:
+      - db_sales_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-microservice}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+
+  db-purchase:
+    image: postgres:16.10
+    container_name: db-purchase
+    environment:
+      POSTGRES_DB: purchase
+      POSTGRES_USER: ${DB_USER:-microservice}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "5436:5432"
+    volumes:
+      - db_purchase_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-microservice}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  nats:
+    image: nats:latest
+    container_name: nats
+    ports:
+      - "4222:4222"
+      - "8222:8222"
+    command: ["-m", "8222"]
+    healthcheck:
+      test: ["CMD", "sh", "-c", "nc -z localhost 4222 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  auth:
+    build:
+      context: .
+      dockerfile: services/auth/Dockerfile
+    container_name: auth-service
+    env_file:
+      - .env
+    ports:
+      - "${AUTH_SERVICE_PORT:-8002}:8000"
+    environment:
+      - PORT=8000
+      - DB_HOST=db-auth
+      - DB_PORT=5432
+      - DB_USER=${DB_USER:-microservice}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=auth
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_USER_EXPIRATION_HOURS=${JWT_USER_EXPIRATION_HOURS:-24}
+      - NATS_URL=nats://nats:4222
+    depends_on:
+      db-auth:
+        condition: service_healthy
+
+  contact:
+    build:
+      context: .
+      dockerfile: services/contact/Dockerfile
+    container_name: contact-service
+    env_file:
+      - .env
+    ports:
+      - "${CONTACT_SERVICE_PORT:-8001}:8000"
+    environment:
+      - PORT=8000
+      - DB_HOST=db-contact
+      - DB_PORT=5432
+      - DB_USER=${DB_USER:-microservice}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=contact
+      - JWT_SECRET=${JWT_SECRET}
+      - NATS_URL=nats://nats:4222
+    depends_on:
+      db-contact:
+        condition: service_healthy
+      nats:
+        condition: service_started
+
+  inventory:
+    build:
+      context: .
+      dockerfile: services/inventory/Dockerfile
+    container_name: inventory-service
+    env_file:
+      - .env
+    ports:
+      - "${INVENTORY_SERVICE_PORT:-8003}:8000"
+    environment:
+      - PORT=8000
+      - DB_HOST=db-inventory
+      - DB_PORT=5432
+      - DB_USER=${DB_USER:-microservice}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=inventory
+      - JWT_SECRET=${JWT_SECRET}
+      - NATS_URL=nats://nats:4222
+    depends_on:
+      db-inventory:
+        condition: service_healthy
+      nats:
+        condition: service_started
+
+  sales:
+    build:
+      context: .
+      dockerfile: services/sales/Dockerfile
+    container_name: sales-service
+    env_file:
+      - .env
+    ports:
+      - "${SALES_SERVICE_PORT:-8004}:8000"
+    environment:
+      - PORT=8000
+      - DB_HOST=db-sales
+      - DB_PORT=5432
+      - DB_USER=${DB_USER:-microservice}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=sales
+      - JWT_SECRET=${JWT_SECRET}
+      - NATS_URL=nats://nats:4222
+      - AUTH_SERVICE_URL=${AUTH_SERVICE_URL:-http://auth:8000}
+      - CONTACT_SERVICE_URL=http://contact:8000
+      - INVENTORY_SERVICE_URL=http://inventory:8000
+    depends_on:
+      db-sales:
+        condition: service_healthy
+      nats:
+        condition: service_started
+      contact:
+        condition: service_started
+      inventory:
+        condition: service_started
+
+  purchase:
+    build:
+      context: .
+      dockerfile: services/purchase/Dockerfile
+    container_name: purchase-service
+    env_file:
+      - .env
+    ports:
+      - "${PURCHASE_SERVICE_PORT:-8005}:8000"
+    environment:
+      - PORT=8000
+      - DB_HOST=db-purchase
+      - DB_PORT=5432
+      - DB_USER=${DB_USER:-microservice}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=purchase
+      - JWT_SECRET=${JWT_SECRET}
+      - NATS_URL=nats://nats:4222
+      - AUTH_SERVICE_URL=${AUTH_SERVICE_URL:-http://auth:8000}
+      - CONTACT_SERVICE_URL=http://contact:8000
+      - INVENTORY_SERVICE_URL=http://inventory:8000
+    depends_on:
+      db-purchase:
+        condition: service_healthy
+      nats:
+        condition: service_started
+      contact:
+        condition: service_started
+      inventory:
+        condition: service_started
+
+  gateway:
+    build:
+      context: .
+      dockerfile: gateway/Dockerfile
+    container_name: gateway
+    env_file:
+      - .env
+    ports:
+      - "${GATEWAY_PORT:-8000}:8000"
+    environment:
+      - PORT=8000
+      - JWT_SECRET=${JWT_SECRET}
+      - AUTH_SERVICE_URL=${AUTH_SERVICE_URL:-http://auth:8000}
+      - CONTACT_SERVICE_URL=${CONTACT_SERVICE_URL:-http://contact:8000}
+      - INVENTORY_SERVICE_URL=${INVENTORY_SERVICE_URL:-http://inventory:8000}
+      - SALES_SERVICE_URL=${SALES_SERVICE_URL:-http://sales:8000}
+      - PURCHASE_SERVICE_URL=${PURCHASE_SERVICE_URL:-http://purchase:8000}
+    depends_on:
+      - auth
+      - contact
+      - inventory
+      - sales
+      - purchase
+
+volumes:
+  db_auth_data:
+  db_contact_data:
+  db_inventory_data:
+  db_sales_data:
+  db_purchase_data:
+

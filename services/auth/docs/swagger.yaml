@@ -1,0 +1,409 @@
+basePath: /
+definitions:
+  errors.ErrorType:
+    enum:
+    - validation
+    - not_found
+    - conflict
+    - unauthorized
+    - forbidden
+    - rate_limit
+    - internal
+    - timeout
+    - unavailable
+    - database
+    - external_service
+    - network
+    - bad_request
+    - invalid_format
+    - payload_too_large
+    - unknown
+    type: string
+    x-enum-varnames:
+    - ErrorTypeValidation
+    - ErrorTypeNotFound
+    - ErrorTypeConflict
+    - ErrorTypeUnauthorized
+    - ErrorTypeForbidden
+    - ErrorTypeRateLimit
+    - ErrorTypeInternal
+    - ErrorTypeTimeout
+    - ErrorTypeUnavailable
+    - ErrorTypeDatabase
+    - ErrorTypeExternal
+    - ErrorTypeNetwork
+    - ErrorTypeBadRequest
+    - ErrorTypeInvalidFormat
+    - ErrorTypePayloadTooLarge
+    - ErrorTypeUnknown
+  model.ForgotPasswordRequest:
+    properties:
+      email:
+        example: user@example.com
+        type: string
+    required:
+    - email
+    type: object
+  model.ForgotPasswordResponse:
+    properties:
+      message:
+        example: If the email exists, a password reset link has been sent
+        type: string
+      reset_token:
+        example: a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6
+        type: string
+    type: object
+  model.LoginRequest:
+    properties:
+      email:
+        example: user@example.com
+        type: string
+      password:
+        example: password123
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  model.LoginResponse:
+    properties:
+      access_token:
+        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiNTUwZTg0MDAtZTI5Yi00MWQ0LWE3MTYtNDQ2NjU1NDQwMDAwIiwiZW1haWwiOiJ1c2VyQGV4YW1wbGUuY29tIiwicm9sZSI6ImZpbmFuY2VfbWFuYWdlciIsInR5cGUiOiJ1c2VyIiwiZXhwIjoxNzYzNzI5NjUyLCJpYXQiOjE3NjM2NDMyNTJ9.dxKJuAaIxwQXZa0of9wUREEHsZupFoZ4kWfjnlRrP10
+        type: string
+      expires_in:
+        example: 86400
+        type: integer
+      user:
+        $ref: '#/definitions/model.User'
+    type: object
+  model.RegisterRequest:
+    properties:
+      email:
+        example: user@example.com
+        type: string
+      password:
+        example: password123
+        minLength: 6
+        type: string
+      role:
+        enum:
+        - inventory_manager
+        - finance_manager
+        example: finance_manager
+        type: string
+    required:
+    - email
+    - password
+    - role
+    type: object
+  model.ResetPasswordRequest:
+    properties:
+      new_password:
+        example: newpassword123
+        minLength: 6
+        type: string
+      reset_token:
+        example: a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6
+        type: string
+    required:
+    - new_password
+    - reset_token
+    type: object
+  model.ServiceTokenRequest:
+    properties:
+      service_name:
+        example: sales
+        type: string
+      service_secret:
+        example: your-secret-key-change-in-production_sales
+        type: string
+    required:
+    - service_name
+    - service_secret
+    type: object
+  model.ServiceTokenResponse:
+    properties:
+      expires_in:
+        example: 3600
+        type: integer
+      token:
+        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoic2FsZXMiLCJlbWFpbCI6InNhbGVzQHNlcnZpY2UiLCJyb2xlIjoic2VydmljZSIsInR5cGUiOiJzZXJ2aWNlIiwiZXhwIjoxNzYzNjQ2ODUzLCJpYXQiOjE3NjM2NDMyNTN9.hx7y9wLIVgGoJOhHiSIy7TY91zz6is-NeWeggF-wh1I
+        type: string
+    type: object
+  model.User:
+    properties:
+      created_at:
+        example: "2025-11-20T12:00:00Z"
+        type: string
+      email:
+        example: user@example.com
+        type: string
+      id:
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+      role:
+        example: finance_manager
+        type: string
+      updated_at:
+        example: "2025-11-20T12:00:00Z"
+        type: string
+    type: object
+  response.FieldError:
+    properties:
+      description:
+        type: string
+      title:
+        type: string
+    type: object
+  response.SimpleErrorDetail:
+    properties:
+      message:
+        example: unauthorized
+        type: string
+      type:
+        allOf:
+        - $ref: '#/definitions/errors.ErrorType'
+        example: unauthorized
+    type: object
+  response.SimpleErrorResponse:
+    properties:
+      error:
+        $ref: '#/definitions/response.SimpleErrorDetail'
+    type: object
+  response.SuccessResponse:
+    properties:
+      data: {}
+    type: object
+  response.ValidationErrorDetail:
+    properties:
+      details:
+        items:
+          $ref: '#/definitions/response.FieldError'
+        type: array
+      message:
+        example: Validation failed
+        type: string
+      type:
+        allOf:
+        - $ref: '#/definitions/errors.ErrorType'
+        example: validation
+    type: object
+  response.ValidationErrorResponse:
+    properties:
+      error:
+        $ref: '#/definitions/response.ValidationErrorDetail'
+    type: object
+host: localhost:8002
+info:
+  contact:
+    email: support@example.com
+    name: API Support
+    url: http://www.example.com/support
+  description: |-
+    Authentication and Authorization Service for Microservices Challenge
+    Provides user registration, login, password reset, and inter-service token generation
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: Auth Service API
+  version: "1.0"
+paths:
+  /forgot-password:
+    post:
+      consumes:
+      - application/json
+      description: Generate a password reset token for the user
+      parameters:
+      - description: Forgot password request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.ForgotPasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.ForgotPasswordResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ValidationErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.SimpleErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.SimpleErrorResponse'
+      summary: Request password reset
+      tags:
+      - auth
+  /login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticate user and return access token
+      parameters:
+      - description: Login request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.LoginResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ValidationErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.SimpleErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.SimpleErrorResponse'
+      summary: Login user
+      tags:
+      - auth
+  /register:
+    post:
+      consumes:
+      - application/json
+      description: Register a new user with email, password, and role
+      parameters:
+      - description: Registration request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.User'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ValidationErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/response.SimpleErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.SimpleErrorResponse'
+      summary: Register a new user
+      tags:
+      - auth
+  /reset-password:
+    post:
+      consumes:
+      - application/json
+      description: Reset user password using reset token
+      parameters:
+      - description: Reset password request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.ResetPasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.SuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ValidationErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.SimpleErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.SimpleErrorResponse'
+      summary: Reset password
+      tags:
+      - auth
+  /service-token:
+    post:
+      consumes:
+      - application/json
+      description: Generate a JWT token for inter-service communication
+      parameters:
+      - description: Service token request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.ServiceTokenRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.ServiceTokenResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ValidationErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.SimpleErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.SimpleErrorResponse'
+      summary: Generate service token
+      tags:
+      - auth
+securityDefinitions:
+  BearerAuth:
+    description: 'Type "Bearer" followed by a space and JWT token. Example: "Bearer
+      eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."'
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
